@@ -4,9 +4,9 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { clerkMiddleware } from '@clerk/express';
-import authRoutes from './routes/auth.routes';
-import resumeRoutes from './routes/resume.routes';
-import aiRoutes from './routes/ai.routes';
+import authRoutes from './routes/auth.routes.js';
+import resumeRoutes from './routes/resume.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 
 const app = express();
 

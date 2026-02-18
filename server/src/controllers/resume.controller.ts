@@ -202,7 +202,7 @@ export const getDiff = async (req: Request, res: Response): Promise<any> => {
     }
 };
 
-import { AIService } from '../services/ai.service';
+import { AIService } from '../services/ai.service.js';
 
 export const suggestAISkills = async (req: Request, res: Response): Promise<any> => {
     try {

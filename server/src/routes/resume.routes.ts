@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { createResume, getResumeVersions, createVersion, getDiff, getUserResumes, getResumeById, updateResume, deleteResume } from '../controllers/resume.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { createResume, getResumeVersions, createVersion, getDiff, getUserResumes, getResumeById, updateResume, deleteResume } from '../controllers/resume.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
