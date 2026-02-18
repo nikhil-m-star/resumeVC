@@ -8,7 +8,7 @@
     "dev:server": "npm run -w server dev",
     "dev:client": "npm run -w client dev",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky; fi"
+    "prepare": "if [ -z \"$CI\" ]; then husky; fi"
   },
   "keywords": [],
   "author": "",
