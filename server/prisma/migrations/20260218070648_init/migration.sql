@@ -1,0 +1,1 @@
+-- No-op in PostgreSQL baseline migration chain.

@@ -1,0 +1,65 @@
+:root {
+    --background: 18 14% 5%;
+    --foreground: 30 12% 95%;
+
+    --card: 20 16% 8%;
+    --card-foreground: 30 12% 95%;
+
+    --popover: 20 16% 8%;
+    --popover-foreground: 30 12% 95%;
+
+    --primary: 27 98% 56%;
+    --primary-foreground: 24 35% 8%;
+
+    --secondary: 20 17% 12%;
+    --secondary-foreground: 30 12% 95%;
+
+    --muted: 18 14% 12%;
+    --muted-foreground: 30 7% 66%;
+
+    --accent: 27 98% 56%;
+    --accent-foreground: 24 35% 8%;
+
+    --destructive: 0 76% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 18% 20%;
+    --input: 24 18% 20%;
+    --ring: 27 98% 56%;
+
+    --radius: 0.75rem;
+}
+
+.dark {
+    --background: 18 14% 5%;
+    --foreground: 30 12% 95%;
+
+    --card: 20 16% 8%;
+    --card-foreground: 30 12% 95%;
+
+    --popover: 20 16% 8%;
+    --popover-foreground: 30 12% 95%;
+
+    --primary: 27 98% 56%;
+    --primary-foreground: 24 35% 8%;
+
+    --secondary: 20 17% 12%;
+    --secondary-foreground: 30 12% 95%;
+
+    --muted: 18 14% 12%;
+    --muted-foreground: 30 7% 66%;
+
+    --accent: 27 98% 56%;
+    --accent-foreground: 24 35% 8%;
+
+    --destructive: 0 76% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 18% 20%;
+    --input: 24 18% 20%;
+    --ring: 27 98% 56%;
+
+    --muted-alpha: hsl(var(--muted) / 0.5);
+    --primary-alpha: hsl(var(--primary) / 0.1);
+    --primary-alpha-2: hsl(var(--primary) / 0.2);
+}

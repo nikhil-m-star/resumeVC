@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: resumevc_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: resumevc
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - resumevc-network
+
+  server:
+    build: ./server
+    container_name: resumevc_server
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgres://admin:password@postgres:5432/resumevc
+      JWT_SECRET: supersecretjwtkey
+      PORT: 3001
+      # AI_API_KEY: your_key_here
+    depends_on:
+      - postgres
+    networks:
+      - resumevc-network
+
+  client:
+    build: ./client
+    container_name: resumevc_client
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    networks:
+      - resumevc-network
+
+networks:
+  resumevc-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
