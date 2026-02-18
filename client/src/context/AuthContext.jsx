@@ -22,6 +22,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
     };
 
+    const isFallbackEmail = (value) => {
+        if (!value || typeof value !== 'string') return true;
+        if (!value.includes('@')) return true;
+        if (value.endsWith('@clerk.local')) return true;
+        if (value.startsWith('user_')) return true;
+        return false;
+    };
+
     useEffect(() => {
         if (!clerkLoaded || !clerkAuthLoaded) return;
         if (isSignedIn && !clerkUser) return;
@@ -50,9 +58,26 @@ export const AuthProvider = ({ children }) => {
                     return;
                 }
 
+                const clerkPrimaryEmail =
+                    clerkUser?.primaryEmailAddress?.emailAddress ||
+                    clerkUser?.emailAddresses?.[0]?.emailAddress ||
+                    null;
+
                 if (parsedStoredUser?.authProvider === 'clerk' && parsedStoredUser?.clerkId === clerkUser.id && storedToken) {
-                    if (!cancelled) setUser(parsedStoredUser);
-                    return;
+                    const hydratedStoredUser = {
+                        ...parsedStoredUser,
+                        email: isFallbackEmail(parsedStoredUser.email)
+                            ? (clerkPrimaryEmail || parsedStoredUser.email || '')
+                            : parsedStoredUser.email,
+                        name: parsedStoredUser.name || clerkUser?.fullName || clerkUser?.firstName || 'User',
+                    };
+
+                    localStorage.setItem('user', JSON.stringify(hydratedStoredUser));
+
+                    if (!isFallbackEmail(hydratedStoredUser.email)) {
+                        if (!cancelled) setUser(hydratedStoredUser);
+                        return;
+                    }
                 }
 
                 let clerkToken = null;
@@ -62,24 +87,39 @@ export const AuthProvider = ({ children }) => {
                     await new Promise((resolve) => setTimeout(resolve, 250));
                 }
 
-                const response = await api.post(
-                    '/auth/clerk-exchange',
-                    {
-                        clerkUserId: clerkUser?.id || null,
-                        email:
-                            clerkUser?.primaryEmailAddress?.emailAddress ||
-                            clerkUser?.emailAddresses?.[0]?.emailAddress ||
-                            null,
-                        name: clerkUser?.fullName || clerkUser?.firstName || null,
-                    },
-                    {
-                        headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : undefined,
-                        skipAuthRedirect: true,
+                let response;
+                let lastError;
+
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        response = await api.post(
+                            '/auth/clerk-exchange',
+                            {
+                                clerkUserId: clerkUser?.id || null,
+                                email:
+                                    clerkUser?.primaryEmailAddress?.emailAddress ||
+                                    clerkUser?.emailAddresses?.[0]?.emailAddress ||
+                                    null,
+                                name: clerkUser?.fullName || clerkUser?.firstName || null,
+                            },
+                            {
+                                headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : undefined,
+                                skipAuthRedirect: true,
+                            }
+                        );
+                        break; // Success
+                    } catch (err) {
+                        lastError = err;
+                        console.log(`Clerk exchange attempt ${i + 1} failed, retrying...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // 1s, 2s, 3s backoff
                     }
-                );
+                }
+
+                if (!response) throw lastError;
 
                 const exchangedUser = {
                     ...response.data.user,
+                    email: clerkPrimaryEmail || response.data.user?.email || '',
                     name: response.data.user?.name || clerkUser?.fullName || clerkUser?.firstName || 'User',
                     authProvider: 'clerk',
                     clerkId: clerkUser.id,
