@@ -125,6 +125,14 @@ export const AuthProvider = ({ children }) => {
                     clerkId: clerkUser.id,
                 };
 
+                // Clean up Clerk URL parameters
+                const url = new URL(window.location.href);
+                if (url.searchParams.has('__clerk_handshake') || url.searchParams.has('__clerk_db_jwt')) {
+                    url.searchParams.delete('__clerk_handshake');
+                    url.searchParams.delete('__clerk_db_jwt');
+                    window.history.replaceState({}, '', url.toString());
+                }
+
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify(exchangedUser));
                 if (!cancelled) setUser(exchangedUser);
