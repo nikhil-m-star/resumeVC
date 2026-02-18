@@ -11,6 +11,13 @@ import Login from "@/pages/Login"
 import Register from "@/pages/Register"
 
 function App() {
+  const ssoCallbackElement = (
+    <AuthenticateWithRedirectCallback
+      signInForceRedirectUrl="/dashboard"
+      signUpForceRedirectUrl="/dashboard"
+    />
+  )
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="resumevc-theme">
       <AuthProvider>
@@ -18,7 +25,9 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback signInForceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard" />} />
+            <Route path="/sso-callback" element={ssoCallbackElement} />
+            <Route path="/sign-in/sso-callback" element={ssoCallbackElement} />
+            <Route path="/sign-up/sso-callback" element={ssoCallbackElement} />
 
             <Route element={<AppLayout />}>
               <Route path="/" element={<Home />} />

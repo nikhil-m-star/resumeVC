@@ -41,10 +41,11 @@ export default function Login() {
         setError('');
         setGoogleLoading(true);
         try {
+            const redirectUrl = `${window.location.origin}/sso-callback`;
             await signIn.authenticateWithRedirect({
                 strategy: 'oauth_google',
-                redirectUrl: '/sso-callback',
-                redirectUrlComplete: '/dashboard',
+                redirectUrl,
+                redirectUrlComplete: `${window.location.origin}/dashboard`,
             });
         } catch (err) {
             setError(err?.errors?.[0]?.longMessage || 'Failed to start Google login');

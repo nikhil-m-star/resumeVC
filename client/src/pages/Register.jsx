@@ -42,10 +42,11 @@ export default function Register() {
         setError('');
         setGoogleLoading(true);
         try {
+            const redirectUrl = `${window.location.origin}/sso-callback`;
             await signUp.authenticateWithRedirect({
                 strategy: 'oauth_google',
-                redirectUrl: '/sso-callback',
-                redirectUrlComplete: '/dashboard',
+                redirectUrl,
+                redirectUrlComplete: `${window.location.origin}/dashboard`,
             });
         } catch (err) {
             setError(err?.errors?.[0]?.longMessage || 'Failed to start Google signup');

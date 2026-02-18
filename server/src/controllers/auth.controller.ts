@@ -190,20 +190,50 @@ export const clerkExchange = async (req: Request, res: Response): Promise<any> =
             return res.status(401).json({ message: 'Unauthorized Clerk session' });
         }
 
-        const email =
+        const emailFromClaims =
             (typeof claims?.email === 'string' && claims.email) ||
             (typeof claims?.email_address === 'string' && claims.email_address) ||
             (typeof claims?.['primary_email_address'] === 'string' && claims['primary_email_address']) ||
             null;
+        const emailFromBody =
+            typeof body.email === 'string' && body.email.includes('@')
+                ? body.email
+                : null;
+        const email = emailFromClaims || emailFromBody;
 
         const displayName =
             (typeof claims?.name === 'string' && claims.name) ||
             (typeof claims?.full_name === 'string' && claims.full_name) ||
             [claims?.given_name, claims?.family_name].filter((part) => typeof part === 'string' && part).join(' ') ||
+            (typeof body.name === 'string' && body.name) ||
             null;
 
-        const resolvedEmail = email || `${userId}@clerk.local`;
+        const fallbackEmail = `${userId}@clerk.local`;
+        const resolvedEmail = email || fallbackEmail;
         let user = await prisma.user.findUnique({ where: { email: resolvedEmail } });
+
+        // Backfill previously created fallback users once real email becomes available.
+        if (!user && email) {
+            const fallbackUser = await prisma.user.findUnique({ where: { email: fallbackEmail } });
+            if (fallbackUser) {
+                const existingUserWithRealEmail = await prisma.user.findUnique({ where: { email } });
+                if (existingUserWithRealEmail) {
+                    user = existingUserWithRealEmail;
+                } else {
+                    user = await prisma.user.update({
+                        where: { id: fallbackUser.id },
+                        data: {
+                            email,
+                            name: fallbackUser.name || displayName || null,
+                        },
+                    });
+                }
+            }
+        }
+
+        if (!user) {
+            user = await prisma.user.findUnique({ where: { email: fallbackEmail } });
+        }
 
         if (!user) {
             const randomPassword = crypto.randomBytes(24).toString('hex');
@@ -215,10 +245,13 @@ export const clerkExchange = async (req: Request, res: Response): Promise<any> =
                     name: displayName || null,
                 },
             });
-        } else if (!user.name && displayName) {
+        } else if ((!user.name && displayName) || (user.email.endsWith('@clerk.local') && email && user.email !== email)) {
             user = await prisma.user.update({
                 where: { id: user.id },
-                data: { name: displayName },
+                data: {
+                    name: user.name || displayName || null,
+                    email: user.email.endsWith('@clerk.local') && email ? email : user.email,
+                },
             });
         }
 

@@ -76,7 +76,26 @@ export default function Editor() {
             return;
         }
 
-        if (!id) return;
+        if (!id) {
+            const resolveEditorRoute = async () => {
+                try {
+                    const resumes = await resumeService.getAllResumes();
+                    if (resumes.length > 0) {
+                        navigate(`/editor/${resumes[0].id}`, { replace: true });
+                    } else {
+                        navigate('/dashboard', { replace: true });
+                    }
+                } catch (error) {
+                    console.error("Failed to resolve editor route", error);
+                    navigate('/dashboard', { replace: true });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            resolveEditorRoute();
+            return;
+        }
 
         const loadResume = async () => {
             try {
@@ -491,17 +510,17 @@ export default function Editor() {
             </Dialog>
 
             <aside className="editor-preview">
-                <div className="p-4 border-b">
-                    <h2 className="font-semibold">Live Preview</h2>
+                <div className="editor-preview-header">
+                    <h2 className="editor-preview-title">Live Preview</h2>
                 </div>
-                <div className="flex-1 p-6 overflow-y-auto bg-gray-100">
+                <div className="editor-preview-canvas">
                     <div className="preview-paper" ref={previewRef}>
                         {resumeData.sections.find(s => s.type === 'personal') && (
-                            <div className="mb-8 border-b-2 border-black pb-4 text-center">
-                                <h1 className="text-3xl font-bold uppercase tracking-tight mb-2">
+                            <div className="preview-personal">
+                                <h1 className="preview-name">
                                     {resumeData.sections.find(s => s.type === 'personal')?.content.name || "Your Name"}
                                 </h1>
-                                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-gray-700">
+                                <div className="preview-contact-row">
                                     {resumeData.sections.find(s => s.type === 'personal')?.content.email && (
                                         <span>{resumeData.sections.find(s => s.type === 'personal').content.email}</span>
                                     )}
@@ -512,7 +531,7 @@ export default function Editor() {
                                         <span>{resumeData.sections.find(s => s.type === 'personal').content.location}</span>
                                     )}
                                 </div>
-                                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-gray-700 mt-1">
+                                <div className="preview-contact-row">
                                     {resumeData.sections.find(s => s.type === 'personal')?.content.linkedin && (
                                         <span>{resumeData.sections.find(s => s.type === 'personal').content.linkedin}</span>
                                     )}
@@ -523,9 +542,9 @@ export default function Editor() {
                             </div>
                         )}
                         {resumeData.sections.filter(s => s.type !== 'personal').map(s => (
-                            <div key={s.id} className="mb-6">
-                                <h3 className="font-bold uppercase mb-2 border-b border-gray-300 pb-1 text-sm tracking-wider">{s.title}</h3>
-                                <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{
+                            <div key={s.id} className="preview-section">
+                                <h3 className="preview-section-heading">{s.title}</h3>
+                                <div className="preview-section-content" dangerouslySetInnerHTML={{
                                     __html: typeof s.content === 'string' ? s.content : JSON.stringify(s.content)
                                 }} />
                             </div>

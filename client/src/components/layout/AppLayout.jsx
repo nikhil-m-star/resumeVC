@@ -1,4 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom"
+import { useUser as useClerkUser } from "@clerk/clerk-react"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Terminal, Github, LogOut } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
@@ -15,7 +16,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export default function AppLayout() {
     const { user, logout } = useAuth()
+    const { user: clerkUser } = useClerkUser()
     const navigate = useNavigate()
+    const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.emailAddresses?.[0]?.emailAddress || ""
+    const displayEmail = user?.authProvider === 'clerk' ? (clerkEmail || user?.email || '') : (user?.email || '')
 
     const handleLogout = async () => {
         await logout()
@@ -63,7 +67,7 @@ export default function AppLayout() {
                                         <DropdownMenuLabel className="user-menu-label">
                                             <div className="user-menu-meta">
                                                 <p className="user-menu-name">{user.name || 'User'}</p>
-                                                <p className="user-menu-email">{user.email}</p>
+                                                <p className="user-menu-email">{displayEmail}</p>
                                             </div>
                                         </DropdownMenuLabel>
                                         <DropdownMenuSeparator />
