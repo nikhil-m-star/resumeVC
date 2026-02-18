@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm run -w server dev\" \"npm run -w client dev\"",
+    "dev:server": "npm run -w server dev",
+    "dev:client": "npm run -w client dev",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky"
   },

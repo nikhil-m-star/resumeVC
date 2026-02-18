@@ -19,7 +19,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback signInForceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard" />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
 
             <Route element={<AppLayout />}>
               <Route path="/" element={<Home />} />
@@ -40,6 +39,7 @@ function App() {
                 </ProtectedRoute>
               } />
             </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

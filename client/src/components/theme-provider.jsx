@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 
 const initialState = {
     theme: "system",
+    resolvedTheme: "dark",
     setTheme: () => null,
 }
 
@@ -16,28 +17,37 @@ export function ThemeProvider({
     const [theme, setTheme] = useState(
         () => localStorage.getItem(storageKey) || defaultTheme
     )
+    const [resolvedTheme, setResolvedTheme] = useState("dark")
 
     useEffect(() => {
-        const root = window.document.documentElement // Using documentElement instead of window.document.documentElement isn't fully robust across all envs but here straightforward
-        // Actually standard is window.document.documentElement
+        const root = window.document.documentElement
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+        const applyTheme = () => {
+            root.classList.remove("light", "dark")
 
-        root.classList.remove("light", "dark")
+            if (theme === "system") {
+                const systemTheme = mediaQuery.matches ? "dark" : "light"
+                root.classList.add(systemTheme)
+                setResolvedTheme(systemTheme)
+                return
+            }
 
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-                .matches
-                ? "dark"
-                : "light"
+            root.classList.add(theme)
+            setResolvedTheme(theme)
+        }
 
-            root.classList.add(systemTheme)
+        applyTheme()
+        if (theme !== "system") {
             return
         }
 
-        root.classList.add(theme)
+        mediaQuery.addEventListener("change", applyTheme)
+        return () => mediaQuery.removeEventListener("change", applyTheme)
     }, [theme])
 
     const value = {
         theme,
+        resolvedTheme,
         setTheme: (theme) => {
             localStorage.setItem(storageKey, theme)
             setTheme(theme)

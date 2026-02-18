@@ -11,18 +11,28 @@ import aiRoutes from './routes/ai.routes';
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
 
-if (process.env.CLERK_SECRET_KEY) {
+const hasClerkSecret = Boolean(process.env.CLERK_SECRET_KEY);
+const hasClerkPublishableKey = Boolean(process.env.CLERK_PUBLISHABLE_KEY);
+
+if (hasClerkSecret && hasClerkPublishableKey) {
     app.use(clerkMiddleware());
 } else {
-    console.warn('CLERK_SECRET_KEY is not set. Clerk middleware disabled; using fallback auth exchange only.');
+    console.warn('Clerk middleware disabled. Set both CLERK_SECRET_KEY and CLERK_PUBLISHABLE_KEY to enable server-side Clerk verification.');
 }
 
 // Routes

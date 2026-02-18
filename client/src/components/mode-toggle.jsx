@@ -3,8 +3,8 @@ import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 export function ModeToggle({ className }) {
-    const { setTheme, theme } = useTheme()
-    const isDark = theme !== "light"
+    const { setTheme, resolvedTheme } = useTheme()
+    const isDark = resolvedTheme === "dark"
 
     return (
         <button

@@ -20,6 +20,10 @@ import App from './App.jsx'
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
+if (!clerkPublishableKey) {
+  throw new Error('VITE_CLERK_PUBLISHABLE_KEY is not set')
+}
+
 const getResolvedTheme = () => {
   const storedTheme = localStorage.getItem('resumevc-theme') || 'dark'
   if (storedTheme === 'system') {
@@ -53,6 +57,11 @@ function Root() {
   return (
     <ClerkProvider
       publishableKey={clerkPublishableKey}
+      signInUrl="/login"
+      signUpUrl="/register"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+      afterSignOutUrl="/login"
       appearance={{
         theme: resolvedTheme === 'dark' ? dark : undefined,
         layout: {

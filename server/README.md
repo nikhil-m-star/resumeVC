@@ -9,6 +9,7 @@ DATABASE_URL="postgresql://<user>:<password>@<host>/<db>?sslmode=require&pgbounc
 JWT_SECRET="<random-long-secret>"
 JWT_REFRESH_SECRET="<random-long-secret>"
 CLERK_SECRET_KEY="sk_test_..."
+CLERK_PUBLISHABLE_KEY="pk_test_..."
 PORT=3001
 ```
 

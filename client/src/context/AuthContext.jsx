@@ -24,6 +24,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (!clerkLoaded || !clerkAuthLoaded) return;
+        if (isSignedIn && !clerkUser) return;
 
         let cancelled = false;
 
@@ -49,12 +50,7 @@ export const AuthProvider = ({ children }) => {
                     return;
                 }
 
-                if (!clerkUser) {
-                    if (!cancelled) setLoading(false);
-                    return;
-                }
-
-                if (parsedStoredUser?.authProvider === 'clerk' && storedToken) {
+                if (parsedStoredUser?.authProvider === 'clerk' && parsedStoredUser?.clerkId === clerkUser.id && storedToken) {
                     if (!cancelled) setUser(parsedStoredUser);
                     return;
                 }
@@ -86,6 +82,7 @@ export const AuthProvider = ({ children }) => {
                     ...response.data.user,
                     name: response.data.user?.name || clerkUser?.fullName || clerkUser?.firstName || 'User',
                     authProvider: 'clerk',
+                    clerkId: clerkUser.id,
                 };
 
                 localStorage.setItem('token', response.data.token);
@@ -96,7 +93,10 @@ export const AuthProvider = ({ children }) => {
                 clearAuthStorage();
                 if (!cancelled) {
                     setUser(null);
+                    const isNetworkError = !error?.response;
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
                     const serverMessage =
+                        (isNetworkError ? `Cannot connect to backend at ${apiUrl}. Start the server and try again.` : null) ||
                         error?.response?.data?.message ||
                         error?.message ||
                         'Google authentication failed. Please try again.';
@@ -154,6 +154,7 @@ export const AuthProvider = ({ children }) => {
             console.error('Clerk logout error', error);
         } finally {
             clearAuthStorage();
+            setSocialAuthError('');
             setUser(null);
         }
     };
