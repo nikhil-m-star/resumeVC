@@ -46,7 +46,7 @@ export default function AppLayout() {
                     </div>
                     <div className="header-actions">
                         <nav className="layout-nav-actions">
-                            <Link to="https://github.com" target="_blank" rel="noreferrer">
+                            <Link to="https://github.com" target="_blank" rel="noreferrer" className="github-link">
                                 <Button variant="ghost" size="icon" className="btn-icon">
                                     <Github className="icon-sm" />
                                     <span className="sr-only">GitHub</span>

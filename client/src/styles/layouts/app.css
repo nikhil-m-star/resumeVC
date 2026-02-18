@@ -509,6 +509,46 @@
     margin-left: 0.25rem;
 }
 
+@media (max-width: 640px) {
+    .header-container {
+        padding: 0 0.75rem;
+    }
+
+    .logo-link {
+        margin-right: 0.55rem;
+    }
+
+    .logo-link span {
+        display: none;
+    }
+
+    .layout-nav-actions {
+        gap: 0.25rem;
+    }
+
+    .github-link {
+        display: none;
+    }
+
+    .theme-toggle,
+    .btn-icon,
+    .avatar-trigger {
+        width: 2.2rem;
+        height: 2.2rem;
+    }
+
+    .auth-actions {
+        gap: 0.25rem;
+        margin-left: 0;
+    }
+
+    .auth-actions .btn {
+        height: 2.1rem;
+        padding: 0 0.62rem;
+        font-size: 0.72rem;
+    }
+}
+
 @keyframes fadeUp {
     from {
         opacity: 0;
