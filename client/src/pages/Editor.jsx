@@ -207,7 +207,9 @@ const normalizeSection = (section, defaultSection = null) => {
 const normalizeResumeContent = (rawResume) => {
     const baseResume = rawResume && typeof rawResume === "object" ? rawResume : {}
     const defaultSections = Array.isArray(mockResume.sections) ? mockResume.sections : []
-    const incomingSections = Array.isArray(baseResume.sections) ? baseResume.sections : []
+    const incomingSections = Array.isArray(baseResume.sections)
+        ? baseResume.sections.filter((section) => section?.id !== "summary")
+        : []
 
     const normalizedDefaultSections = defaultSections.map((defaultSection) => {
         const incomingSection = incomingSections.find((section) => section?.id === defaultSection.id)
@@ -455,7 +457,7 @@ export default function Editor() {
     const handleAIRequest = () => {
         if (isGuest) {
             setAuthPromptTitle("Unlock AI Assistant");
-            setAuthPromptDesc("Sign up to get instant AI suggestions for your summary, experience, and skills.");
+            setAuthPromptDesc("Sign up to get instant AI suggestions for your experience, education, and skills.");
             setShowAuthPrompt(true);
             return;
         }

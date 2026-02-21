@@ -16,12 +16,6 @@ export const mockResume = {
             }
         },
         {
-            id: "summary",
-            title: "Professional Summary",
-            type: "text",
-            content: "<p>Experienced Full Stack Engineer with 8+ years of expertise in building scalable web applications.</p>"
-        },
-        {
             id: "experience",
             title: "Experience",
             type: "list",
