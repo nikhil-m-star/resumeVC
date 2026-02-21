@@ -158,6 +158,7 @@ const normalizeListItem = (sectionId, item = {}, index = 0) => ({
     location: normalizeTextValue(item.location),
     link: normalizeTextValue(item.link) || normalizeTextValue(item.url),
     description: normalizeDescription(item.description) || normalizeDescription(item.details),
+    ...(item.aiGenerated != null && { aiGenerated: Boolean(item.aiGenerated) }),
 })
 
 const normalizeSection = (section, defaultSection = null) => {
