@@ -249,7 +249,7 @@ export default function Editor() {
     const [lastSaved, setLastSaved] = useState(null)
 
     // Refs
-    const previewRef = useRef(null)
+    const printPreviewRef = useRef(null)
 
     // Version Control State
     const [history, setHistory] = useState([])
@@ -266,8 +266,27 @@ export default function Editor() {
 
     // Print logic
     const handlePrint = useReactToPrint({
-        contentRef: previewRef,
+        contentRef: printPreviewRef,
         documentTitle: resumeData?.sections?.find(s => s.type === 'personal')?.content?.name || "Resume",
+        pageStyle: `
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            @media print {
+                body {
+                    margin: 0;
+                    padding: 0;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .preview-paper {
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                    margin: 0 auto !important;
+                }
+            }
+        `,
     })
 
     // Fetch Resume
@@ -599,6 +618,46 @@ export default function Editor() {
     const listItems = activeSection?.type === "list" && Array.isArray(activeSection.content)
         ? activeSection.content
         : []
+
+    const renderResumePaper = (className = "", ref = null) => (
+        <div className={`preview-paper ${className}`.trim()} ref={ref}>
+            {personalSection && (
+                <div className="preview-personal">
+                    <h1 className="preview-name">
+                        {personalSection?.content.name || "Your Name"}
+                    </h1>
+                    <div className="preview-contact-row">
+                        {personalSection?.content.email && (
+                            <span>{personalSection.content.email}</span>
+                        )}
+                        {personalSection?.content.phone && (
+                            <span>{personalSection.content.phone}</span>
+                        )}
+                        {personalSection?.content.location && (
+                            <span>{personalSection.content.location}</span>
+                        )}
+                    </div>
+                    <div className="preview-contact-row">
+                        {personalSection?.content.linkedin && (
+                            <span>{personalSection.content.linkedin}</span>
+                        )}
+                        {personalSection?.content.github && (
+                            <span>{personalSection.content.github}</span>
+                        )}
+                        {personalSection?.content.website && (
+                            <span>{personalSection.content.website}</span>
+                        )}
+                    </div>
+                </div>
+            )}
+            {resumeData.sections.filter((section) => section.type !== 'personal').map((section) => (
+                <div key={section.id} className="preview-section">
+                    <h3 className="preview-section-heading">{section.title}</h3>
+                    {renderPreviewSectionContent(section)}
+                </div>
+            ))}
+        </div>
+    )
 
     return (
         <div className="editor-layout">
@@ -947,45 +1006,14 @@ export default function Editor() {
                     <h2 className="editor-preview-title">Live Preview</h2>
                 </div>
                 <div className="editor-preview-canvas">
-                    <div className="preview-paper" ref={previewRef}>
-                        {personalSection && (
-                            <div className="preview-personal">
-                                <h1 className="preview-name">
-                                    {personalSection?.content.name || "Your Name"}
-                                </h1>
-                                <div className="preview-contact-row">
-                                    {personalSection?.content.email && (
-                                        <span>{personalSection.content.email}</span>
-                                    )}
-                                    {personalSection?.content.phone && (
-                                        <span>{personalSection.content.phone}</span>
-                                    )}
-                                    {personalSection?.content.location && (
-                                        <span>{personalSection.content.location}</span>
-                                    )}
-                                </div>
-                                <div className="preview-contact-row">
-                                    {personalSection?.content.linkedin && (
-                                        <span>{personalSection.content.linkedin}</span>
-                                    )}
-                                    {personalSection?.content.github && (
-                                        <span>{personalSection.content.github}</span>
-                                    )}
-                                    {personalSection?.content.website && (
-                                        <span>{personalSection.content.website}</span>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        {resumeData.sections.filter(s => s.type !== 'personal').map(s => (
-                            <div key={s.id} className="preview-section">
-                                <h3 className="preview-section-heading">{s.title}</h3>
-                                {renderPreviewSectionContent(s)}
-                            </div>
-                        ))}
+                    <div className="preview-paper-frame">
+                        {renderResumePaper("preview-paper-screen")}
                     </div>
                 </div>
             </aside>
+            <div className="print-preview-root" aria-hidden="true">
+                {renderResumePaper("preview-paper-print", printPreviewRef)}
+            </div>
         </div>
     )
 }

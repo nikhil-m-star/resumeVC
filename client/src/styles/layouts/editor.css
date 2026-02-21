@@ -45,6 +45,7 @@
     border-left: 1px solid hsl(var(--border));
     background-color: hsl(var(--muted) / 0.18);
     flex-direction: column;
+    --preview-paper-scale: 0.4;
 }
 
 @media (min-width: 1280px) {
@@ -71,6 +72,9 @@
     padding: 1.5rem;
     overflow-y: auto;
     background-color: hsl(var(--muted) / 0.42);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
 }
 
 .dark .editor-preview-canvas {
@@ -78,7 +82,8 @@
 }
 
 .preview-paper {
-    aspect-ratio: 1 / 1.414;
+    width: 210mm;
+    min-height: 297mm;
     background-color: white;
     box-shadow: 0 18px 30px -20px hsl(20 30% 8% / 0.35);
     border-radius: 0.125rem;
@@ -86,6 +91,28 @@
     padding: 2rem;
     font-size: 10px;
     line-height: 1.6;
+}
+
+.preview-paper-frame {
+    width: calc(210mm * var(--preview-paper-scale));
+    min-height: calc(297mm * var(--preview-paper-scale));
+}
+
+.preview-paper-screen {
+    zoom: var(--preview-paper-scale);
+}
+
+.preview-paper-print {
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.print-preview-root {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .preview-personal {
