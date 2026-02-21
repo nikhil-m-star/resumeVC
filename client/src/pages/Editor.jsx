@@ -850,7 +850,7 @@ export default function Editor() {
                                                     <span className="sortable-meta">
                                                         Drag to reorder
                                                         {item.aiGenerated && (
-                                                            <span className="ai-recommended-badge">✦ AI Recommended</span>
+                                                            <span className="ai-recommended-badge"><span className="ai-icon">✦</span> AI Recommended</span>
                                                         )}
                                                     </span>
                                                     <Button
