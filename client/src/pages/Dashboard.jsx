@@ -138,6 +138,9 @@ export default function Dashboard() {
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState('');
     const [deletingId, setDeletingId] = useState(null);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [resumeToDelete, setResumeToDelete] = useState(null);
+    const [deleteError, setDeleteError] = useState('');
     const navigate = useNavigate();
 
     const refreshContributionGraph = useCallback(async (resumeList) => {
@@ -192,21 +195,44 @@ export default function Dashboard() {
         }
     };
 
-    const handleDelete = async (resumeId) => {
-        if (!window.confirm('Delete this resume? This action cannot be undone.')) return;
+    const openDeleteDialog = (resume) => {
+        setResumeToDelete(resume);
+        setDeleteError('');
+        setIsDeleteOpen(true);
+    };
+
+    const closeDeleteDialog = () => {
+        if (deletingId) return;
+        setIsDeleteOpen(false);
+        setResumeToDelete(null);
+        setDeleteError('');
+    };
+
+    const handleDelete = async () => {
+        const resumeId = resumeToDelete?.id;
+        if (!resumeId) return;
+
         setDeletingId(resumeId);
+        setDeleteError('');
         try {
             await resumeService.deleteResume(resumeId);
             const nextResumes = resumes.filter((resume) => resume.id !== resumeId);
             setResumes(nextResumes);
             await refreshContributionGraph(nextResumes);
+            setIsDeleteOpen(false);
+            setResumeToDelete(null);
         } catch (error) {
             console.error('Failed to delete resume', error);
-            alert('Failed to delete resume');
+            const msg = error?.response?.data?.message || error?.message || 'Failed to delete resume';
+            setDeleteError(msg);
         } finally {
             setDeletingId(null);
         }
     };
+
+    const isDeletingSelectedResume = Boolean(
+        deletingId && resumeToDelete && deletingId === resumeToDelete.id
+    );
 
     if (loading) {
         return (
@@ -323,7 +349,7 @@ export default function Dashboard() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             className="text-destructive"
-                                            onClick={() => handleDelete(resume.id)}
+                                            onClick={() => openDeleteDialog(resume)}
                                             disabled={deletingId === resume.id}
                                         >
                                             {deletingId === resume.id ? 'Deleting...' : 'Delete'}
@@ -387,6 +413,39 @@ export default function Dashboard() {
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isDeleteOpen && resumeToDelete && (
+                <div className="dialog-overlay">
+                    <div className="dialog-content" role="dialog" aria-modal="true" aria-labelledby="delete-resume-title">
+                        <div className="dialog-header">
+                            <h2 id="delete-resume-title" className="dialog-title">Delete Resume</h2>
+                            <p className="dialog-description">
+                                Delete "{resumeToDelete.title}"? This action cannot be undone.
+                            </p>
+                        </div>
+                        {deleteError && <div className="error-banner">{deleteError}</div>}
+                        <div className="dialog-footer">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={closeDeleteDialog}
+                                disabled={isDeletingSelectedResume}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={isDeletingSelectedResume}
+                            >
+                                {isDeletingSelectedResume && <Loader2 className="icon-sm animate-spin mr-2" />}
+                                {isDeletingSelectedResume ? 'Deleting...' : 'Delete Resume'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}
