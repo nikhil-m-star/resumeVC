@@ -1,10 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, FileText, Clock, MoreVertical, Loader2 } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
 import { Button } from '@/components/ui/button';
-import ContributionGraph from '@/components/version-control/ContributionGraph';
-import { createContributionData, buildContributionDataFromVersionLists } from '@/lib/contribution-utils';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,46 +10,48 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const buildContributionData = async (resumes) => {
-    const resumesWithVersions = resumes.filter((resume) => (resume._count?.versions || 0) > 0);
+const DEFAULT_RESUME_CATEGORY = 'General';
 
-    if (resumesWithVersions.length === 0) {
-        return createContributionData({});
-    }
+const normalizeCategory = (category) => {
+    if (typeof category !== 'string') return DEFAULT_RESUME_CATEGORY;
+    const normalized = category.trim();
+    return normalized.length > 0 ? normalized : DEFAULT_RESUME_CATEGORY;
+};
 
-    const versionResponses = await Promise.allSettled(
-        resumesWithVersions.map((resume) => resumeService.getVersions(resume.id))
-    );
+const sortByMostRecent = (a, b) => {
+    const aTime = new Date(a?.updatedAt || 0).getTime();
+    const bTime = new Date(b?.updatedAt || 0).getTime();
+    return bTime - aTime;
+};
 
-    const versionLists = [];
+const groupResumesByCategory = (resumeList) => {
+    const groups = new Map();
 
-    versionResponses.forEach((response) => {
-        if (response.status !== 'fulfilled') return;
-        versionLists.push(Array.isArray(response.value) ? response.value : []);
+    resumeList.forEach((resume) => {
+        const category = normalizeCategory(resume?.category);
+        if (!groups.has(category)) {
+            groups.set(category, []);
+        }
+        groups.get(category).push(resume);
     });
 
-    return buildContributionDataFromVersionLists(versionLists);
+    return Array.from(groups.entries())
+        .map(([category, resumes]) => ({
+            category,
+            resumes: [...resumes].sort(sortByMostRecent),
+        }))
+        .sort((a, b) => a.category.localeCompare(b.category));
 };
 
-const getCompanyTypeSummary = (resume) => {
-    const profile = resume?.companyTypeProfile;
-    if (!profile || profile.totalCompanies < 1) return null;
-    if (!profile.primaryCompanyType || profile.primaryCompanyType === 'unknown') return null;
-
-    return {
-        type: profile.primaryCompanyType,
-        label: profile.primaryCompanyTypeLabel || 'Unknown',
-        companyCount: profile.totalCompanies,
-    };
-};
+const getResumeCountLabel = (count) => `${count} resume${count === 1 ? '' : 's'}`;
 
 export default function Dashboard() {
     const [resumes, setResumes] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activityLoading, setActivityLoading] = useState(true);
-    const [contributionData, setContributionData] = useState(() => createContributionData({}));
+    const [viewMode, setViewMode] = useState('recent');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
+    const [newCategory, setNewCategory] = useState(DEFAULT_RESUME_CATEGORY);
     const [createLoading, setCreateLoading] = useState(false);
     const [createError, setCreateError] = useState('');
     const [deletingId, setDeletingId] = useState(null);
@@ -60,34 +60,29 @@ export default function Dashboard() {
     const [deleteError, setDeleteError] = useState('');
     const navigate = useNavigate();
 
-    const refreshContributionGraph = useCallback(async (resumeList) => {
-        setActivityLoading(true);
-        try {
-            const graphData = await buildContributionData(resumeList);
-            setContributionData(graphData);
-        } catch (error) {
-            console.error('Failed to build contribution graph', error);
-            setContributionData(createContributionData({}));
-        } finally {
-            setActivityLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
         const loadResumes = async () => {
             try {
                 const data = await resumeService.getAllResumes();
-                setResumes(data);
-                await refreshContributionGraph(data);
+                setResumes(Array.isArray(data) ? data : []);
             } catch (error) {
                 console.error('Failed to fetch resumes', error);
+                setResumes([]);
             } finally {
                 setLoading(false);
             }
         };
 
         loadResumes();
-    }, [refreshContributionGraph]);
+    }, []);
+
+    const sortedResumes = useMemo(() => {
+        return [...resumes].sort(sortByMostRecent);
+    }, [resumes]);
+
+    const categoryGroups = useMemo(() => {
+        return groupResumesByCategory(sortedResumes);
+    }, [sortedResumes]);
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -95,12 +90,14 @@ export default function Dashboard() {
         setCreateError('');
         try {
             const newResume = await resumeService.createResume({
-                title: newTitle,
+                title: newTitle.trim(),
+                category: normalizeCategory(newCategory),
                 description: 'Created via ResumeForge',
-                isPublic: false
+                isPublic: false,
             });
             setIsCreateOpen(false);
             setNewTitle('');
+            setNewCategory(DEFAULT_RESUME_CATEGORY);
             setCreateError('');
             navigate(`/editor/${newResume.id}`);
         } catch (error) {
@@ -135,7 +132,6 @@ export default function Dashboard() {
             await resumeService.deleteResume(resumeId);
             const nextResumes = resumes.filter((resume) => resume.id !== resumeId);
             setResumes(nextResumes);
-            await refreshContributionGraph(nextResumes);
             setIsDeleteOpen(false);
             setResumeToDelete(null);
         } catch (error) {
@@ -149,6 +145,55 @@ export default function Dashboard() {
 
     const isDeletingSelectedResume = Boolean(
         deletingId && resumeToDelete && deletingId === resumeToDelete.id
+    );
+
+    const renderResumeCard = (resume) => (
+        <div key={resume.id} className="resume-card group">
+            <div className="resume-card-header">
+                <Link to={`/editor/${resume.id}`} className="block flex-1">
+                    <div className="resume-icon-wrapper">
+                        <FileText className="icon-md" />
+                    </div>
+                    <h3 className="resume-title">{resume.title}</h3>
+                    <div className="resume-card-category-row">
+                        <span className="resume-category-pill">{normalizeCategory(resume.category)}</span>
+                    </div>
+                </Link>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="btn-icon-more">
+                            <MoreVertical className="icon-sm" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/editor/${resume.id}`)}>
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/resumes/${resume.id}/history`)}>
+                            View Changes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => openDeleteDialog(resume)}
+                            disabled={deletingId === resume.id}
+                        >
+                            {deletingId === resume.id ? 'Deleting...' : 'Delete'}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            <div className="resume-meta">
+                <Clock className="icon-xs mr-1" />
+                <span>Edited {new Date(resume.updatedAt).toLocaleDateString()}</span>
+            </div>
+            <div className="resume-version-count">
+                {resume._count?.versions || 0} versions
+            </div>
+            <Link to={`/resumes/${resume.id}/history`} className="resume-history-link">
+                View field-level history
+            </Link>
+        </div>
     );
 
     if (loading) {
@@ -165,97 +210,67 @@ export default function Dashboard() {
                 <div className="header-content">
                     <div>
                         <h1 className="dashboard-title">Dashboard</h1>
-                        <p className="dashboard-subtitle">Manage your resumes and versions with GitHub-style tracking</p>
+                        <p className="dashboard-subtitle">Manage resumes by category or recent updates.</p>
                     </div>
-                    <Button onClick={() => setIsCreateOpen(true)}>
-                        <Plus className="icon-sm mr-2" /> New Resume
-                    </Button>
+                    <div className="dashboard-actions">
+                        <div className="dashboard-view-toggle">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={viewMode === 'recent' ? 'default' : 'outline'}
+                                onClick={() => setViewMode('recent')}
+                            >
+                                Most Recent
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={viewMode === 'category' ? 'default' : 'outline'}
+                                onClick={() => setViewMode('category')}
+                            >
+                                By Category
+                            </Button>
+                        </div>
+                        <Button onClick={() => setIsCreateOpen(true)}>
+                            <Plus className="icon-sm mr-2" /> New Resume
+                        </Button>
+                    </div>
                 </div>
             </div>
 
             <div className="dashboard-main">
-                <ContributionGraph
-                    data={contributionData}
-                    isLoading={activityLoading}
-                    title="Resume Contribution Graph"
-                    subtitle="Activity from your version commits across all resumes"
-                />
-
-                <div className="resume-grid">
-                    {resumes.map((resume) => {
-                        const companyTypeSummary = getCompanyTypeSummary(resume);
-                        const companyCountLabel = companyTypeSummary?.companyCount === 1 ? 'company' : 'companies';
-
-                        return (
-                            <div key={resume.id} className="resume-card group">
-                                <div className="resume-card-header">
-                                    <Link to={`/editor/${resume.id}`} className="block flex-1">
-                                        <div className="resume-icon-wrapper">
-                                            <FileText className="icon-md" />
-                                        </div>
-                                        <h3 className="resume-title">{resume.title}</h3>
-                                        {companyTypeSummary && (
-                                            <div className="resume-company-type-row">
-                                                <span className="resume-company-type-pill" data-type={companyTypeSummary.type}>
-                                                    {companyTypeSummary.label}
-                                                </span>
-                                                <span className="resume-company-type-count">
-                                                    {companyTypeSummary.companyCount} {companyCountLabel}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </Link>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="btn-icon-more">
-                                                <MoreVertical className="icon-sm" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => navigate(`/editor/${resume.id}`)}>
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => navigate(`/resumes/${resume.id}/history`)}>
-                                                View Changes
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                className="text-destructive"
-                                                onClick={() => openDeleteDialog(resume)}
-                                                disabled={deletingId === resume.id}
-                                            >
-                                                {deletingId === resume.id ? 'Deleting...' : 'Delete'}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                {resumes.length === 0 ? (
+                    <div className="dashboard-empty-state">
+                        <FileText className="empty-icon" />
+                        <h3 className="empty-title">No resumes yet</h3>
+                        <p className="empty-desc">
+                            Create your first resume and assign a category to organize your dashboard.
+                        </p>
+                        <Button onClick={() => setIsCreateOpen(true)}>
+                            Create Resume
+                        </Button>
+                    </div>
+                ) : viewMode === 'recent' ? (
+                    <div className="resume-grid">
+                        {sortedResumes.map((resume) => renderResumeCard(resume))}
+                    </div>
+                ) : (
+                    <div className="resume-category-list">
+                        {categoryGroups.map((group) => (
+                            <section key={group.category} className="resume-category-section">
+                                <header className="resume-category-header">
+                                    <h2 className="resume-category-title">{group.category}</h2>
+                                    <span className="resume-category-count">
+                                        {getResumeCountLabel(group.resumes.length)}
+                                    </span>
+                                </header>
+                                <div className="resume-grid">
+                                    {group.resumes.map((resume) => renderResumeCard(resume))}
                                 </div>
-
-                                <div className="resume-meta">
-                                    <Clock className="icon-xs mr-1" />
-                                    <span>Edited {new Date(resume.updatedAt).toLocaleDateString()}</span>
-                                </div>
-                                <div className="resume-version-count">
-                                    {resume._count?.versions || 0} versions
-                                </div>
-                                <Link to={`/resumes/${resume.id}/history`} className="resume-history-link">
-                                    View field-level history
-                                </Link>
-                            </div>
-                        );
-                    })}
-
-                    {resumes.length === 0 && (
-                        <div className="dashboard-empty-state">
-                            <FileText className="empty-icon" />
-                            <h3 className="empty-title">No resumes yet</h3>
-                            <p className="empty-desc">
-                                Create your first resume to start building your career history with version control.
-                            </p>
-                            <Button onClick={() => setIsCreateOpen(true)}>
-                                Create Resume
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                            </section>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {isCreateOpen && (
@@ -263,7 +278,7 @@ export default function Dashboard() {
                     <div className="dialog-content">
                         <div className="dialog-header">
                             <h2 className="dialog-title">Create New Resume</h2>
-                            <p className="dialog-description">Give your resume a name to get started.</p>
+                            <p className="dialog-description">Add a title and category to organize it on your dashboard.</p>
                         </div>
                         <form onSubmit={handleCreate}>
                             {createError && <div className="error-banner">{createError}</div>}
@@ -273,16 +288,26 @@ export default function Dashboard() {
                                     <input
                                         id="title"
                                         className="input"
-                                        placeholder="e.g. Software Engineer 2024"
+                                        placeholder="e.g. Software Engineer 2026"
                                         value={newTitle}
                                         onChange={(e) => setNewTitle(e.target.value)}
                                         autoFocus
                                     />
                                 </div>
+                                <div className="grid gap-2 dashboard-create-category">
+                                    <label htmlFor="category" className="form-label">Category</label>
+                                    <input
+                                        id="category"
+                                        className="input"
+                                        placeholder="e.g. Product, Backend, Internship"
+                                        value={newCategory}
+                                        onChange={(e) => setNewCategory(e.target.value)}
+                                    />
+                                </div>
                             </div>
                             <div className="dialog-footer">
                                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={!newTitle || createLoading}>
+                                <Button type="submit" disabled={!newTitle.trim() || createLoading}>
                                     {createLoading && <Loader2 className="icon-sm animate-spin mr-2" />}
                                     Create
                                 </Button>

@@ -25,6 +25,7 @@ model User {
 model Resume {
   id          String   @id @default(uuid())
   title       String
+  category    String?
   description String?
   isPublic    Boolean  @default(false)
   ownerId     String

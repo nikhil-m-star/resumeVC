@@ -18,6 +18,20 @@
     padding: 0.85rem 1.5rem;
 }
 
+.dashboard-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.dashboard-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
 .dashboard-main {
     padding: 2rem;
     max-width: 80rem;
@@ -93,7 +107,7 @@
 
 .contrib-grid-shell {
     margin-top: 1rem;
-    border: 1px solid hsl(var(--border));
+    border: none;
     border-radius: 0.75rem;
     padding: 0.9rem;
     background-color: hsl(var(--background));
@@ -165,13 +179,16 @@
     display: flex;
     align-items: flex-start;
     width: max-content;
+    min-width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
 }
 
 .contrib-month-group {
     display: flex;
     flex-direction: column;
     gap: 0.32rem;
-    margin-right: 0.72rem;
+    margin-right: 0;
     flex: 0 0 auto;
 }
 
@@ -180,8 +197,8 @@
 }
 
 .contrib-month-group + .contrib-month-group {
-    border-left: 1px solid hsl(var(--border) / 0.7);
-    padding-left: 0.38rem;
+    border-left: none;
+    padding-left: 0;
 }
 
 .contrib-month-label {
@@ -329,6 +346,15 @@
         padding: 1.25rem;
     }
 
+    .dashboard-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .dashboard-view-toggle {
+        width: 100%;
+    }
+
     .contrib-stats {
         grid-template-columns: 1fr;
     }
@@ -385,6 +411,64 @@
 
 .resume-card:hover .resume-title {
     color: hsl(var(--primary));
+}
+
+.resume-card-category-row {
+    margin-top: 0.2rem;
+}
+
+.resume-category-pill {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--muted) / 0.6);
+    color: hsl(var(--foreground));
+    border-radius: 999px;
+    padding: 0.18rem 0.55rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.resume-category-list {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.resume-category-section {
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.8rem;
+    background: linear-gradient(170deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+    padding: 1rem;
+}
+
+.resume-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.resume-category-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.01em;
+}
+
+.resume-category-count {
+    font-size: 0.76rem;
+    color: hsl(var(--muted-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: 999px;
+    padding: 0.2rem 0.54rem;
+    background-color: hsl(var(--background));
+}
+
+.dashboard-create-category {
+    margin-top: 0.9rem;
 }
 
 .resume-company-type-row {

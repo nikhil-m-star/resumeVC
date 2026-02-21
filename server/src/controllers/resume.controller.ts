@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 
 const createResumeSchema = z.object({
     title: z.string(),
+    category: z.string().max(64).optional(),
     description: z.string().optional(),
     isPublic: z.boolean().optional(),
 });
@@ -19,7 +20,7 @@ const createVersionSchema = z.object({
 
 export const createResume = async (req: Request, res: Response): Promise<any> => {
     try {
-        const { title, description, isPublic } = createResumeSchema.parse(req.body);
+        const { title, category, description, isPublic } = createResumeSchema.parse(req.body);
         // @ts-ignore - req.user is added by auth middleware
         const userId = req.user?.userId;
 
@@ -28,6 +29,7 @@ export const createResume = async (req: Request, res: Response): Promise<any> =>
         const resume = await prisma.resume.create({
             data: {
                 title,
+                category,
                 description,
                 isPublic,
                 ownerId: userId,
@@ -85,6 +87,7 @@ export const getResumeById = async (req: Request, res: Response): Promise<any> =
 
 const updateResumeSchema = z.object({
     title: z.string().optional(),
+    category: z.string().max(64).optional(),
     description: z.string().optional(),
     isPublic: z.boolean().optional(),
     content: z.string().optional(), // JSON content as string
@@ -93,7 +96,7 @@ const updateResumeSchema = z.object({
 export const updateResume = async (req: Request, res: Response): Promise<any> => {
     try {
         const id = String(req.params.id);
-        const { title, description, isPublic, content } = updateResumeSchema.parse(req.body);
+        const { title, category, description, isPublic, content } = updateResumeSchema.parse(req.body);
         // @ts-ignore
         const userId = req.user?.userId;
 
@@ -108,6 +111,7 @@ export const updateResume = async (req: Request, res: Response): Promise<any> =>
             where: { id },
             data: {
                 title,
+                category,
                 description,
                 isPublic,
                 content,
