@@ -40,4 +40,4 @@ jobs:
 
     # Docker Build Test
     - name: Build Docker Images
-      run: docker-compose build
+      run: docker compose build

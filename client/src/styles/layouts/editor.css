@@ -132,6 +132,65 @@
     line-height: 1.55;
 }
 
+.preview-empty {
+    font-size: 0.78rem;
+    color: hsl(220 6% 42%);
+}
+
+.preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.58rem;
+}
+
+.preview-list-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.preview-list-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: baseline;
+}
+
+.preview-list-subrow {
+    color: hsl(220 8% 44%);
+    font-size: 0.74rem;
+}
+
+.preview-item-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.preview-item-date {
+    font-size: 0.74rem;
+    color: hsl(220 8% 44%);
+    white-space: nowrap;
+}
+
+.preview-item-meta {
+    font-size: 0.74rem;
+}
+
+.preview-item-link {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 11rem;
+}
+
+.preview-item-bullets {
+    margin: 0.2rem 0 0 0;
+    padding-left: 0.95rem;
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
 @media (max-width: 960px) {
     .editor-sidebar {
         display: none;
@@ -265,11 +324,43 @@
     gap: 0.75rem;
 }
 
+.editor-grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.list-section-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.list-section-hint {
+    font-size: 0.82rem;
+    color: hsl(var(--muted-foreground));
+}
+
+.list-empty-state {
+    font-size: 0.9rem;
+    color: hsl(var(--muted-foreground));
+}
+
 .sortable-card {
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
     background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
     padding: 1rem 1rem 1rem 1.25rem;
+}
+
+.list-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .sortable-title {
@@ -288,6 +379,15 @@
     margin-top: 0.65rem;
     font-size: 0.9rem;
     color: hsl(var(--foreground) / 0.9);
+}
+
+.list-item-textarea {
+    min-height: 110px;
+}
+
+.list-item-help {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
 }
 
 .diff-dialog-content {
