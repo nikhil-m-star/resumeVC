@@ -11,15 +11,24 @@ import aiRoutes from './routes/ai.routes.js';
 const app = express();
 
 app.use(helmet());
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    process.env.FRONTEND_URL,
-].filter(Boolean) as string[];
+const allowedOrigins = [process.env.FRONTEND_URL].filter(Boolean) as string[];
+const localhostOriginPattern = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        // Non-browser tools (curl/postman) may not send Origin.
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+
+        if (localhostOriginPattern.test(origin) || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
 }));
 app.use(morgan('dev'));

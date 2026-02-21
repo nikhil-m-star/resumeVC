@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, FileText, Clock, MoreVertical, Loader2 } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const DEFAULT_RESUME_CATEGORY = 'General';
+const DASHBOARD_RESUMES_CACHE_KEY = 'resumevc-dashboard-resumes-v1';
 
 const normalizeCategory = (category) => {
     if (typeof category !== 'string') return DEFAULT_RESUME_CATEGORY;
@@ -45,9 +46,30 @@ const groupResumesByCategory = (resumeList) => {
 
 const getResumeCountLabel = (count) => `${count} resume${count === 1 ? '' : 's'}`;
 
+const readCachedResumes = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(DASHBOARD_RESUMES_CACHE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeCachedResumes = (resumeList) => {
+    if (typeof window === 'undefined') return;
+    try {
+        localStorage.setItem(DASHBOARD_RESUMES_CACHE_KEY, JSON.stringify(resumeList));
+    } catch {
+        // Ignore cache write failures and keep dashboard functional.
+    }
+};
+
 export default function Dashboard() {
-    const [resumes, setResumes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [resumes, setResumes] = useState(() => readCachedResumes());
+    const [loading, setLoading] = useState(() => readCachedResumes().length === 0);
     const [viewMode, setViewMode] = useState('recent');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
@@ -58,16 +80,24 @@ export default function Dashboard() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [resumeToDelete, setResumeToDelete] = useState(null);
     const [deleteError, setDeleteError] = useState('');
+    const hasCachedResumesRef = useRef(resumes.length > 0);
     const navigate = useNavigate();
 
     useEffect(() => {
         const loadResumes = async () => {
+            if (!hasCachedResumesRef.current) {
+                setLoading(true);
+            }
             try {
                 const data = await resumeService.getAllResumes();
-                setResumes(Array.isArray(data) ? data : []);
+                const nextResumes = Array.isArray(data) ? data : [];
+                setResumes(nextResumes);
+                writeCachedResumes(nextResumes);
             } catch (error) {
                 console.error('Failed to fetch resumes', error);
-                setResumes([]);
+                if (!hasCachedResumesRef.current) {
+                    setResumes([]);
+                }
             } finally {
                 setLoading(false);
             }
@@ -132,6 +162,7 @@ export default function Dashboard() {
             await resumeService.deleteResume(resumeId);
             const nextResumes = resumes.filter((resume) => resume.id !== resumeId);
             setResumes(nextResumes);
+            writeCachedResumes(nextResumes);
             setIsDeleteOpen(false);
             setResumeToDelete(null);
         } catch (error) {

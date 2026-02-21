@@ -15,6 +15,17 @@ export default function Login() {
     const { isLoaded: signInLoaded, signIn } = useSignIn();
     const navigate = useNavigate();
 
+    const getErrorMessage = (err, fallback) => {
+        const apiData = err?.response?.data;
+        if (Array.isArray(apiData?.errors) && apiData.errors.length > 0) {
+            const firstIssue = apiData.errors[0];
+            if (typeof firstIssue?.message === 'string' && firstIssue.message.trim()) {
+                return firstIssue.message;
+            }
+        }
+        return apiData?.message || fallback;
+    };
+
     useEffect(() => {
         if (!authLoading && user) {
             navigate('/dashboard', { replace: true });
@@ -29,7 +40,7 @@ export default function Login() {
             await login(email, password);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to login');
+            setError(getErrorMessage(err, 'Failed to login'));
         } finally {
             setLoading(false);
         }
