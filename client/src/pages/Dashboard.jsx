@@ -16,6 +16,7 @@ export default function Dashboard() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [createLoading, setCreateLoading] = useState(false);
+    const [createError, setCreateError] = useState('');
     const [deletingId, setDeletingId] = useState(null);
     const navigate = useNavigate();
 
@@ -37,6 +38,7 @@ export default function Dashboard() {
     const handleCreate = async (e) => {
         e.preventDefault();
         setCreateLoading(true);
+        setCreateError('');
         try {
             const newResume = await resumeService.createResume({
                 title: newTitle,
@@ -45,10 +47,13 @@ export default function Dashboard() {
             });
             setIsCreateOpen(false);
             setNewTitle('');
+            setCreateError('');
             // Navigate to editor immediately
             navigate(`/editor/${newResume.id}`);
         } catch (error) {
             console.error('Failed to create resume', error);
+            const msg = error?.response?.data?.message || error?.message || 'Failed to create resume. Check if the backend is running.';
+            setCreateError(msg);
         } finally {
             setCreateLoading(false);
         }
@@ -157,6 +162,7 @@ export default function Dashboard() {
                             <p className="dialog-description">Give your resume a name to get started.</p>
                         </div>
                         <form onSubmit={handleCreate}>
+                            {createError && <div className="error-banner">{createError}</div>}
                             <div className="form-group py-4">
                                 <div className="grid gap-2">
                                     <label htmlFor="title" className="form-label">Resume Title</label>
