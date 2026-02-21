@@ -3,7 +3,11 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 
 export default function SortableList({ items = [], onReorder, renderItem }) {
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
