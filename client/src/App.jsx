@@ -7,6 +7,8 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import Home from "@/pages/Home"
 import Dashboard from "@/pages/Dashboard"
 import Editor from "@/pages/Editor"
+import Profile from "@/pages/Profile"
+import ResumeHistory from "@/pages/ResumeHistory"
 import Login from "@/pages/Login"
 import Register from "@/pages/Register"
 
@@ -36,6 +38,11 @@ function App() {
                   <Dashboard />
                 </ProtectedRoute>
               } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/editor" element={
                 <ProtectedRoute>
                   <Editor />
@@ -45,6 +52,11 @@ function App() {
               <Route path="/editor/:id" element={
                 <ProtectedRoute>
                   <Editor />
+                </ProtectedRoute>
+              } />
+              <Route path="/resumes/:id/history" element={
+                <ProtectedRoute>
+                  <ResumeHistory />
                 </ProtectedRoute>
               } />
             </Route>

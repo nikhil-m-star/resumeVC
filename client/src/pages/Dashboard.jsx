@@ -1,105 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, FileText, Clock, MoreVertical, Loader2, GitCommitHorizontal, CalendarDays, Flame } from 'lucide-react';
+import { Plus, FileText, Clock, MoreVertical, Loader2 } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
 import { Button } from '@/components/ui/button';
+import ContributionGraph from '@/components/version-control/ContributionGraph';
+import { createContributionData, buildContributionDataFromVersionLists } from '@/lib/contribution-utils';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const WEEKS_TO_SHOW = 20;
-const DAYS_TO_SHOW = WEEKS_TO_SHOW * 7;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const toDateKey = (value) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    const local = new Date(date);
-    local.setHours(0, 0, 0, 0);
-    const year = local.getFullYear();
-    const month = String(local.getMonth() + 1).padStart(2, '0');
-    const day = String(local.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const getContributionLevel = (count, maxCount) => {
-    if (count <= 0 || maxCount <= 0) return 0;
-    if (maxCount === 1) return 4;
-
-    const ratio = count / maxCount;
-    if (ratio < 0.25) return 1;
-    if (ratio < 0.5) return 2;
-    if (ratio < 0.75) return 3;
-    return 4;
-};
-
-const calculateStreak = (countsByDate, startDate, endDate) => {
-    let streak = 0;
-    const cursor = new Date(endDate);
-
-    while (cursor >= startDate) {
-        const key = toDateKey(cursor);
-        if (!key || !countsByDate[key]) break;
-        streak += 1;
-        cursor.setDate(cursor.getDate() - 1);
-    }
-
-    return streak;
-};
-
-const createContributionData = (countsByDate = {}) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - (DAYS_TO_SHOW - 1));
-
-    const gridStart = new Date(startDate);
-    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
-
-    const totalGridDays = Math.floor((today.getTime() - gridStart.getTime()) / DAY_MS) + 1;
-
-    let totalCommits = 0;
-    let activeDays = 0;
-    let maxCommits = 0;
-
-    const rawCells = Array.from({ length: totalGridDays }).map((_, index) => {
-        const date = new Date(gridStart);
-        date.setDate(gridStart.getDate() + index);
-
-        const inRange = date >= startDate && date <= today;
-        const dateKey = toDateKey(date);
-        const count = inRange && dateKey ? (countsByDate[dateKey] || 0) : 0;
-
-        if (inRange) {
-            totalCommits += count;
-            if (count > 0) activeDays += 1;
-            if (count > maxCommits) maxCommits = count;
-        }
-
-        return {
-            dateKey,
-            count,
-            inRange,
-        };
-    });
-
-    const cells = rawCells.map((cell) => ({
-        ...cell,
-        level: cell.inRange ? getContributionLevel(cell.count, maxCommits) : 0,
-    }));
-
-    return {
-        cells,
-        totalCommits,
-        activeDays,
-        maxCommits,
-        streak: calculateStreak(countsByDate, startDate, today),
-    };
-};
 
 const buildContributionData = async (resumes) => {
     const resumesWithVersions = resumes.filter((resume) => (resume._count?.versions || 0) > 0);
@@ -112,20 +23,14 @@ const buildContributionData = async (resumes) => {
         resumesWithVersions.map((resume) => resumeService.getVersions(resume.id))
     );
 
-    const countsByDate = {};
+    const versionLists = [];
 
     versionResponses.forEach((response) => {
         if (response.status !== 'fulfilled') return;
-
-        const versions = Array.isArray(response.value) ? response.value : [];
-        versions.forEach((version) => {
-            const dateKey = toDateKey(version?.createdAt);
-            if (!dateKey) return;
-            countsByDate[dateKey] = (countsByDate[dateKey] || 0) + 1;
-        });
+        versionLists.push(Array.isArray(response.value) ? response.value : []);
     });
 
-    return createContributionData(countsByDate);
+    return buildContributionDataFromVersionLists(versionLists);
 };
 
 export default function Dashboard() {
@@ -257,75 +162,12 @@ export default function Dashboard() {
             </div>
 
             <div className="dashboard-main">
-                <section className="contrib-panel">
-                    <div className="contrib-panel-header">
-                        <div>
-                            <h2 className="contrib-title">Resume Contribution Graph</h2>
-                            <p className="contrib-subtitle">Activity from your version commits across all resumes</p>
-                        </div>
-                        <span className="contrib-range">Last {WEEKS_TO_SHOW} weeks</span>
-                    </div>
-
-                    <div className="contrib-stats">
-                        <div className="contrib-stat-card">
-                            <GitCommitHorizontal className="icon-sm" />
-                            <div>
-                                <p className="contrib-stat-label">Total commits</p>
-                                <p className="contrib-stat-value">{contributionData.totalCommits}</p>
-                            </div>
-                        </div>
-                        <div className="contrib-stat-card">
-                            <CalendarDays className="icon-sm" />
-                            <div>
-                                <p className="contrib-stat-label">Active days</p>
-                                <p className="contrib-stat-value">{contributionData.activeDays}</p>
-                            </div>
-                        </div>
-                        <div className="contrib-stat-card">
-                            <Flame className="icon-sm" />
-                            <div>
-                                <p className="contrib-stat-label">Current streak</p>
-                                <p className="contrib-stat-value">{contributionData.streak} day{contributionData.streak === 1 ? '' : 's'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="contrib-grid-shell">
-                        {activityLoading ? (
-                            <div className="contrib-loading">Building contribution graph...</div>
-                        ) : (
-                            <>
-                                <div className="contrib-grid">
-                                    {contributionData.cells.map((cell, index) => {
-                                        const tooltipDate = cell.dateKey
-                                            ? new Date(`${cell.dateKey}T00:00:00`).toLocaleDateString()
-                                            : '';
-                                        const tooltip = cell.inRange
-                                            ? `${cell.count} commit${cell.count === 1 ? '' : 's'} on ${tooltipDate}`
-                                            : '';
-
-                                        return (
-                                            <span
-                                                key={`${cell.dateKey || 'empty'}-${index}`}
-                                                className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'}`}
-                                                title={tooltip}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                                <div className="contrib-legend">
-                                    <span>Less</span>
-                                    <span className="contrib-cell level-0" />
-                                    <span className="contrib-cell level-1" />
-                                    <span className="contrib-cell level-2" />
-                                    <span className="contrib-cell level-3" />
-                                    <span className="contrib-cell level-4" />
-                                    <span>More</span>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </section>
+                <ContributionGraph
+                    data={contributionData}
+                    isLoading={activityLoading}
+                    title="Resume Contribution Graph"
+                    subtitle="Activity from your version commits across all resumes"
+                />
 
                 <div className="resume-grid">
                     {resumes.map((resume) => (
@@ -347,6 +189,9 @@ export default function Dashboard() {
                                         <DropdownMenuItem onClick={() => navigate(`/editor/${resume.id}`)}>
                                             Edit
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => navigate(`/resumes/${resume.id}/history`)}>
+                                            View Changes
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem
                                             className="text-destructive"
                                             onClick={() => openDeleteDialog(resume)}
@@ -365,6 +210,9 @@ export default function Dashboard() {
                             <div className="resume-version-count">
                                 {resume._count?.versions || 0} versions
                             </div>
+                            <Link to={`/resumes/${resume.id}/history`} className="resume-history-link">
+                                View field-level history
+                            </Link>
                         </div>
                     ))}
 
