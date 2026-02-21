@@ -104,7 +104,58 @@
     color: hsl(var(--muted-foreground));
 }
 
+.contrib-grid-context {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.contrib-grid-summary {
+    font-size: 0.82rem;
+    color: hsl(var(--foreground));
+    font-weight: 600;
+}
+
+.contrib-grid-dates {
+    font-size: 0.74rem;
+    color: hsl(var(--muted-foreground));
+}
+
+.contrib-grid-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.contrib-weekday-rail {
+    flex: 0 0 1.7rem;
+}
+
+.contrib-weekday-spacer {
+    display: block;
+    height: calc(0.72rem + 0.32rem);
+}
+
+.contrib-weekday-grid {
+    display: grid;
+    grid-template-rows: repeat(7, 0.7rem);
+    gap: 0.2rem;
+}
+
+.contrib-weekday-label {
+    font-size: 0.64rem;
+    line-height: 1;
+    color: hsl(var(--muted-foreground));
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
 .contrib-grid-scroller {
+    flex: 1;
     width: 100%;
     overflow-x: auto;
     padding-bottom: 0.1rem;
@@ -160,10 +211,11 @@
     border-radius: 2px;
     border: 1px solid hsl(var(--border));
     background-color: hsl(var(--muted) / 0.55);
+    transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
 }
 
 .contrib-cell.outside {
-    opacity: 0.35;
+    opacity: 0.26;
 }
 
 .contrib-cell.level-0 {
@@ -200,6 +252,27 @@
 
 .dark .contrib-cell.level-4 {
     background-color: hsl(143 73% 52%);
+}
+
+.contrib-cell:not(.outside):hover,
+.contrib-cell:not(.outside):focus-visible {
+    transform: scale(1.16);
+    border-color: hsl(var(--foreground) / 0.38);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.18);
+    z-index: 1;
+}
+
+.contrib-cell.today {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.34);
+}
+
+.contrib-cell.weekend:not(.outside) {
+    filter: saturate(0.93);
+}
+
+.contrib-legend .contrib-legend-swatch {
+    pointer-events: none;
 }
 
 .contrib-legend {
@@ -258,6 +331,14 @@
 
     .contrib-stats {
         grid-template-columns: 1fr;
+    }
+
+    .contrib-weekday-rail {
+        display: none;
+    }
+
+    .contrib-grid-body {
+        gap: 0;
     }
 }
 

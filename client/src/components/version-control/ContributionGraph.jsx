@@ -2,6 +2,7 @@ import { GitCommitHorizontal, CalendarDays, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const DAYS_IN_WEEK = 7;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const EMPTY_GRAPH_DATA = {
     cells: [],
@@ -11,6 +12,13 @@ const EMPTY_GRAPH_DATA = {
 };
 
 const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'short' });
+const rangeFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+const WEEKDAY_RAIL_LABELS = {
+    1: 'Mon',
+    3: 'Wed',
+    5: 'Fri',
+};
 
 const createPlaceholderCell = () => ({
     dateKey: null,
@@ -89,6 +97,27 @@ const getMonthGroups = (cells = []) => {
     return groups;
 };
 
+const getInRangeBounds = (cells = []) => {
+    const dates = cells
+        .filter((cell) => cell?.inRange && cell?.dateKey)
+        .map((cell) => parseDateKey(cell.dateKey))
+        .filter(Boolean);
+
+    if (dates.length === 0) return null;
+
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+    const daysCovered = Math.floor((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) + 1;
+
+    return {
+        startDate,
+        endDate,
+        daysCovered,
+        startLabel: rangeFormatter.format(startDate),
+        endLabel: rangeFormatter.format(endDate),
+    };
+};
+
 export default function ContributionGraph({
     data = EMPTY_GRAPH_DATA,
     isLoading = false,
@@ -103,8 +132,19 @@ export default function ContributionGraph({
         ...(data || {}),
     };
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
     const range = rangeLabel || 'Last 365 days';
     const monthGroups = getMonthGroups(safeData.cells);
+    const inRangeBounds = getInRangeBounds(safeData.cells);
+    const contributionSummary = inRangeBounds
+        ? `${safeData.totalCommits} contribution${safeData.totalCommits === 1 ? '' : 's'} in the last ${inRangeBounds.daysCovered} days`
+        : 'No contribution data for this period';
+    const dateSpan = inRangeBounds
+        ? `${inRangeBounds.startLabel} - ${inRangeBounds.endLabel}`
+        : 'Add resume commits to populate this heatmap';
 
     return (
         <section className={cn('contrib-panel', className)}>
@@ -145,44 +185,62 @@ export default function ContributionGraph({
                     <div className="contrib-loading">{loadingLabel}</div>
                 ) : (
                     <>
-                        <div className="contrib-grid-scroller">
-                            <div className="contrib-grid-track">
-                                {monthGroups.map((group) => (
-                                    <div key={group.monthKey} className="contrib-month-group">
-                                        <span className="contrib-month-label">{group.monthLabel}</span>
-                                        <div className="contrib-month-weeks">
-                                            {group.weeks.map((week) => (
-                                                <div key={week.key} className="contrib-week-column">
-                                                    {week.cells.map((cell, rowIndex) => {
-                                                        const tooltipDate = cell.dateKey
-                                                            ? new Date(`${cell.dateKey}T00:00:00`).toLocaleDateString()
-                                                            : '';
-                                                        const tooltip = cell.inRange
-                                                            ? `${cell.count} commit${cell.count === 1 ? '' : 's'} on ${tooltipDate}`
-                                                            : '';
+                        <div className="contrib-grid-context">
+                            <p className="contrib-grid-summary">{contributionSummary}</p>
+                            <p className="contrib-grid-dates">{dateSpan}</p>
+                        </div>
+                        <div className="contrib-grid-body">
+                            <div className="contrib-weekday-rail" aria-hidden="true">
+                                <span className="contrib-weekday-spacer" />
+                                <div className="contrib-weekday-grid">
+                                    {Array.from({ length: DAYS_IN_WEEK }).map((_, rowIndex) => (
+                                        <span key={`weekday-${rowIndex}`} className="contrib-weekday-label">
+                                            {WEEKDAY_RAIL_LABELS[rowIndex] || ''}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="contrib-grid-scroller">
+                                <div className="contrib-grid-track">
+                                    {monthGroups.map((group) => (
+                                        <div key={group.monthKey} className="contrib-month-group">
+                                            <span className="contrib-month-label">{group.monthLabel}</span>
+                                            <div className="contrib-month-weeks">
+                                                {group.weeks.map((week) => (
+                                                    <div key={week.key} className="contrib-week-column">
+                                                        {week.cells.map((cell, rowIndex) => {
+                                                            const cellDate = parseDateKey(cell.dateKey);
+                                                            const tooltipDate = cellDate ? cellDate.toLocaleDateString() : '';
+                                                            const isToday = Boolean(cellDate && cellDate.getTime() === todayTime);
+                                                            const dayOfWeek = cellDate ? cellDate.getDay() : null;
+                                                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                                                            const tooltip = cell.inRange
+                                                                ? `${cell.count === 0 ? 'No commits' : `${cell.count} commit${cell.count === 1 ? '' : 's'}`} on ${tooltipDate}`
+                                                                : '';
 
-                                                        return (
-                                                            <span
-                                                                key={`${week.key}-${rowIndex}`}
-                                                                className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'}`}
-                                                                title={tooltip}
-                                                            />
-                                                        );
-                                                    })}
-                                                </div>
-                                            ))}
+                                                            return (
+                                                                <span
+                                                                    key={`${week.key}-${rowIndex}`}
+                                                                    className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'} ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
+                                                                    title={tooltip}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                         <div className="contrib-legend">
                             <span>Less</span>
-                            <span className="contrib-cell level-0" />
-                            <span className="contrib-cell level-1" />
-                            <span className="contrib-cell level-2" />
-                            <span className="contrib-cell level-3" />
-                            <span className="contrib-cell level-4" />
+                            <span className="contrib-cell contrib-legend-swatch level-0" />
+                            <span className="contrib-cell contrib-legend-swatch level-1" />
+                            <span className="contrib-cell contrib-legend-swatch level-2" />
+                            <span className="contrib-cell contrib-legend-swatch level-3" />
+                            <span className="contrib-cell contrib-legend-swatch level-4" />
                             <span>More</span>
                         </div>
                     </>
