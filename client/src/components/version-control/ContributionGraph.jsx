@@ -1,6 +1,5 @@
 import { GitCommitHorizontal, CalendarDays, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DEFAULT_WEEKS_TO_SHOW } from '@/lib/contribution-utils';
 
 const DAYS_IN_WEEK = 7;
 
@@ -13,48 +12,81 @@ const EMPTY_GRAPH_DATA = {
 
 const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'short' });
 
-const getMonthLabels = (cells = []) => {
+const createPlaceholderCell = () => ({
+    dateKey: null,
+    count: 0,
+    inRange: false,
+    level: 0,
+    isPlaceholder: true,
+});
+
+const parseDateKey = (dateKey) => {
+    if (!dateKey) return null;
+    const date = new Date(`${dateKey}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getWeekAnchorDate = (weekCells = []) => {
+    const inRangeDates = weekCells
+        .filter((cell) => cell?.inRange && cell?.dateKey)
+        .map((cell) => parseDateKey(cell.dateKey))
+        .filter(Boolean);
+
+    const monthStartInWeek = inRangeDates.find((date) => date.getDate() === 1);
+    if (monthStartInWeek) return monthStartInWeek;
+
+    if (inRangeDates.length > 0) {
+        return inRangeDates[0];
+    }
+
+    const fallbackDates = weekCells
+        .filter((cell) => cell?.dateKey)
+        .map((cell) => parseDateKey(cell.dateKey))
+        .filter(Boolean);
+
+    return fallbackDates[0] || null;
+};
+
+const getMonthGroups = (cells = []) => {
     const safeCells = Array.isArray(cells) ? cells : [];
     if (safeCells.length === 0) return [];
 
-    const labels = [];
-    const seenMonths = new Set();
-    const seenWeeks = new Set();
+    const weeks = [];
+    for (let index = 0; index < safeCells.length; index += DAYS_IN_WEEK) {
+        const weekCells = safeCells.slice(index, index + DAYS_IN_WEEK);
+        while (weekCells.length < DAYS_IN_WEEK) {
+            weekCells.push(createPlaceholderCell());
+        }
 
-    const firstInRangeIndex = safeCells.findIndex((cell) => cell?.inRange && cell?.dateKey);
-    if (firstInRangeIndex === -1) return [];
+        const anchorDate = getWeekAnchorDate(weekCells);
+        const monthKey = anchorDate
+            ? `${anchorDate.getFullYear()}-${String(anchorDate.getMonth() + 1).padStart(2, '0')}`
+            : `unknown-${weeks.length}`;
 
-    const firstVisibleDate = new Date(`${safeCells[firstInRangeIndex].dateKey}T00:00:00`);
-    if (!Number.isNaN(firstVisibleDate.getTime())) {
-        const firstWeek = Math.floor(firstInRangeIndex / DAYS_IN_WEEK);
-        labels.push({
-            weekIndex: firstWeek,
-            label: monthFormatter.format(firstVisibleDate),
+        weeks.push({
+            key: `week-${index / DAYS_IN_WEEK}`,
+            cells: weekCells,
+            monthKey,
+            monthLabel: anchorDate ? monthFormatter.format(anchorDate) : '',
         });
-        seenMonths.add(`${firstVisibleDate.getFullYear()}-${firstVisibleDate.getMonth()}`);
-        seenWeeks.add(firstWeek);
     }
 
-    safeCells.forEach((cell, index) => {
-        if (!cell?.inRange || !cell?.dateKey) return;
+    const groups = [];
+    weeks.forEach((week) => {
+        const previous = groups[groups.length - 1];
+        if (!previous || previous.monthKey !== week.monthKey) {
+            groups.push({
+                monthKey: week.monthKey,
+                monthLabel: week.monthLabel,
+                weeks: [week],
+            });
+            return;
+        }
 
-        const date = new Date(`${cell.dateKey}T00:00:00`);
-        if (Number.isNaN(date.getTime()) || date.getDate() !== 1) return;
-
-        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-        const weekIndex = Math.floor(index / DAYS_IN_WEEK);
-
-        if (seenMonths.has(monthKey) || seenWeeks.has(weekIndex)) return;
-
-        labels.push({
-            weekIndex,
-            label: monthFormatter.format(date),
-        });
-        seenMonths.add(monthKey);
-        seenWeeks.add(weekIndex);
+        previous.weeks.push(week);
     });
 
-    return labels.sort((a, b) => a.weekIndex - b.weekIndex);
+    return groups;
 };
 
 export default function ContributionGraph({
@@ -71,9 +103,8 @@ export default function ContributionGraph({
         ...(data || {}),
     };
 
-    const range = rangeLabel || `Last ${DEFAULT_WEEKS_TO_SHOW} weeks`;
-    const totalWeeks = Math.ceil(safeData.cells.length / DAYS_IN_WEEK);
-    const monthLabels = getMonthLabels(safeData.cells);
+    const range = rangeLabel || 'Last 365 days';
+    const monthGroups = getMonthGroups(safeData.cells);
 
     return (
         <section className={cn('contrib-panel', className)}>
@@ -115,40 +146,34 @@ export default function ContributionGraph({
                 ) : (
                     <>
                         <div className="contrib-grid-scroller">
-                            {totalWeeks > 0 && (
-                                <div
-                                    className="contrib-months"
-                                    style={{ gridTemplateColumns: `repeat(${totalWeeks}, 0.7rem)` }}
-                                >
-                                    {monthLabels.map((monthLabel) => (
-                                        <span
-                                            key={`${monthLabel.weekIndex}-${monthLabel.label}`}
-                                            className="contrib-month-label"
-                                            style={{ gridColumn: `${monthLabel.weekIndex + 1} / span 1` }}
-                                        >
-                                            {monthLabel.label}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="contrib-grid-track">
+                                {monthGroups.map((group) => (
+                                    <div key={group.monthKey} className="contrib-month-group">
+                                        <span className="contrib-month-label">{group.monthLabel}</span>
+                                        <div className="contrib-month-weeks">
+                                            {group.weeks.map((week) => (
+                                                <div key={week.key} className="contrib-week-column">
+                                                    {week.cells.map((cell, rowIndex) => {
+                                                        const tooltipDate = cell.dateKey
+                                                            ? new Date(`${cell.dateKey}T00:00:00`).toLocaleDateString()
+                                                            : '';
+                                                        const tooltip = cell.inRange
+                                                            ? `${cell.count} commit${cell.count === 1 ? '' : 's'} on ${tooltipDate}`
+                                                            : '';
 
-                            <div className="contrib-grid">
-                                {safeData.cells.map((cell, index) => {
-                                    const tooltipDate = cell.dateKey
-                                        ? new Date(`${cell.dateKey}T00:00:00`).toLocaleDateString()
-                                        : '';
-                                    const tooltip = cell.inRange
-                                        ? `${cell.count} commit${cell.count === 1 ? '' : 's'} on ${tooltipDate}`
-                                        : '';
-
-                                    return (
-                                        <span
-                                            key={`${cell.dateKey || 'empty'}-${index}`}
-                                            className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'}`}
-                                            title={tooltip}
-                                        />
-                                    );
-                                })}
+                                                        return (
+                                                            <span
+                                                                key={`${week.key}-${rowIndex}`}
+                                                                className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'}`}
+                                                                title={tooltip}
+                                                            />
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <div className="contrib-legend">

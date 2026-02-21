@@ -1,4 +1,5 @@
-export const DEFAULT_WEEKS_TO_SHOW = 20;
+export const DEFAULT_DAYS_TO_SHOW = 365;
+export const DEFAULT_WEEKS_TO_SHOW = 53;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -41,9 +42,7 @@ const calculateStreak = (countsByDate, startDate, endDate) => {
     return streak;
 };
 
-export const createContributionData = (countsByDate = {}, weeksToShow = DEFAULT_WEEKS_TO_SHOW) => {
-    const daysToShow = weeksToShow * 7;
-
+export const createContributionData = (countsByDate = {}, daysToShow = DEFAULT_DAYS_TO_SHOW) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -94,7 +93,7 @@ export const createContributionData = (countsByDate = {}, weeksToShow = DEFAULT_
     };
 };
 
-export const buildContributionDataFromVersions = (versions = [], weeksToShow = DEFAULT_WEEKS_TO_SHOW) => {
+export const buildContributionDataFromVersions = (versions = [], daysToShow = DEFAULT_DAYS_TO_SHOW) => {
     const countsByDate = {};
 
     versions.forEach((version) => {
@@ -103,10 +102,10 @@ export const buildContributionDataFromVersions = (versions = [], weeksToShow = D
         countsByDate[dateKey] = (countsByDate[dateKey] || 0) + 1;
     });
 
-    return createContributionData(countsByDate, weeksToShow);
+    return createContributionData(countsByDate, daysToShow);
 };
 
-export const buildContributionDataFromVersionLists = (versionLists = [], weeksToShow = DEFAULT_WEEKS_TO_SHOW) => {
+export const buildContributionDataFromVersionLists = (versionLists = [], daysToShow = DEFAULT_DAYS_TO_SHOW) => {
     const countsByDate = {};
 
     versionLists.forEach((versions) => {
@@ -119,5 +118,5 @@ export const buildContributionDataFromVersionLists = (versionLists = [], weeksTo
         });
     });
 
-    return createContributionData(countsByDate, weeksToShow);
+    return createContributionData(countsByDate, daysToShow);
 };
