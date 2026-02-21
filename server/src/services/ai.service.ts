@@ -118,6 +118,57 @@ export class AIService {
         return raw.split(/[,\n]/).map(s => s.replace(/^[-*•"\s]+|["\s]+$/g, '').trim()).filter(Boolean).slice(0, 12);
     }
 
+    public async generateSampleResume(category: string): Promise<Record<string, unknown>> {
+        const systemPrompt = [
+            'You are an expert resume writer.',
+            `Generate a realistic, detailed sample resume for a "${category}" professional.`,
+            'Return ONLY valid JSON with this exact structure (no markdown, no explanation):',
+            '{',
+            '  "sections": [',
+            '    { "id": "personal", "title": "Personal Details", "type": "personal", "content": {',
+            '        "name": "...", "email": "...", "phone": "...", "location": "...",',
+            '        "linkedin": "...", "github": "...", "website": "..."',
+            '    }},',
+            '    { "id": "experience", "title": "Experience", "type": "list", "content": [',
+            '        { "id": "exp-1", "title": "Role", "subtitle": "Company", "date": "Duration",',
+            '          "location": "City, State", "link": "", "description": "- Bullet 1\\n- Bullet 2" }',
+            '    ]},',
+            '    { "id": "projects", "title": "Projects", "type": "list", "content": [',
+            '        { "id": "proj-1", "title": "Project Name", "subtitle": "Tech Stack",',
+            '          "date": "Year", "location": "", "link": "github.com/...",',
+            '          "description": "- Bullet 1\\n- Bullet 2" }',
+            '    ]},',
+            '    { "id": "achievements", "title": "Achievements", "type": "list", "content": [',
+            '        { "id": "ach-1", "title": "Achievement", "subtitle": "Organization",',
+            '          "date": "Year", "location": "", "link": "", "description": "- Details" }',
+            '    ]},',
+            '    { "id": "education", "title": "Education", "type": "list", "content": [',
+            '        { "id": "edu-1", "title": "Degree", "subtitle": "University",',
+            '          "date": "Duration", "location": "City", "link": "",',
+            '          "description": "- GPA or highlights" }',
+            '    ]}',
+            '  ]',
+            '}',
+            'Rules:',
+            '- Use realistic but fictional data (real-sounding company names, universities, etc.).',
+            '- Include 2-3 experience entries with 3-4 bullet points each.',
+            '- Include 2 project entries with concrete tech stacks and outcomes.',
+            '- Include 1-2 achievements.',
+            '- Include 1 education entry.',
+            '- Use quantifiable metrics in bullets (e.g., "Reduced latency by 40%").',
+            '- Make the person sound like a strong mid-senior candidate.',
+        ].join('\n');
+
+        const raw = await this.callGroq(systemPrompt, `Generate a ${category} resume now.`, 1500);
+        const parsed = this.extractJsonObject(raw);
+
+        if (!parsed || !Array.isArray(parsed.sections)) {
+            throw new Error('Failed to parse AI-generated resume. Please try again.');
+        }
+
+        return parsed;
+    }
+
     private extractJsonObject(rawContent: string): Record<string, unknown> | null {
         if (!rawContent || typeof rawContent !== 'string') return null;
 
@@ -180,6 +231,7 @@ export class AIService {
             'Rules:',
             '- recommendedCandidateKey must be one of the candidate keys provided.',
             '- fitScore should be an integer from 0 to 100.',
+            '- In your reasoning, ALWAYS refer to resumes by their resumeTitle (e.g. "Software Engineer 2024"), NEVER use generic labels like "Candidate 1" or "Candidate 2".',
             '- categoryRecommendations should be actionable bullet-like strings.',
             '- companySpecificRecommendations should be tailored to the target company.',
             '- missingResumeContent should identify information gaps to fill in the resume.',

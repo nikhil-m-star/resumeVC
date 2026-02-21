@@ -455,3 +455,44 @@ export const improveAISection = async (req: Request, res: Response): Promise<any
         res.status(500).json({ message: 'AI Service Error' });
     }
 };
+
+export const generateSampleResume = async (req: Request, res: Response): Promise<any> => {
+    try {
+        // @ts-ignore
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+        const { category } = req.body;
+        const resolvedCategory = resolveBuiltinCategory(category || DEFAULT_RESUME_CATEGORY);
+
+        const sampleContent = await AIService.getInstance().generateSampleResume(resolvedCategory);
+
+        // Create the resume in the DB
+        const resume = await prisma.resume.create({
+            data: {
+                title: `Sample ${resolvedCategory} Resume`,
+                description: `AI-generated sample for ${resolvedCategory}`,
+                category: resolvedCategory,
+                isPublic: false,
+                ownerId: userId,
+                content: JSON.stringify(sampleContent),
+            },
+        });
+
+        // Also create an initial version
+        await prisma.resumeVersion.create({
+            data: {
+                resumeId: resume.id,
+                content: JSON.stringify(sampleContent),
+                commitMsg: 'AI-generated sample resume',
+                version: 1,
+            },
+        });
+
+        res.status(201).json(resume);
+    } catch (error) {
+        console.error('Generate sample error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to generate sample resume';
+        res.status(500).json({ message });
+    }
+};

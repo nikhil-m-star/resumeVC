@@ -74,4 +74,9 @@ export const resumeService = {
         });
         return response.data;
     },
+
+    generateSampleResume: async (category) => {
+        const response = await api.post('/ai/generate-sample', { category });
+        return response.data;
+    },
 };

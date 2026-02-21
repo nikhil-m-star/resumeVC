@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, Sparkles, Building2, Target, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Sparkles, Building2, Target, CheckCircle2, Wand2 } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
 import { BUILTIN_RESUME_CATEGORIES, DEFAULT_RESUME_CATEGORY } from '@/constants/resume-categories';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,19 @@ import { Button } from '@/components/ui/button';
 const getSafeArray = (value) => (Array.isArray(value) ? value : []);
 
 export default function Recommendations() {
+    const navigate = useNavigate();
     const [targetCompany, setTargetCompany] = useState('');
     const [targetCategory, setTargetCategory] = useState(DEFAULT_RESUME_CATEGORY);
     const [categories, setCategories] = useState(BUILTIN_RESUME_CATEGORIES);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState(null);
+
+    // Sample generation state
+    const [sampleCategory, setSampleCategory] = useState(DEFAULT_RESUME_CATEGORY);
+    const [sampleLoading, setSampleLoading] = useState(false);
+    const [sampleError, setSampleError] = useState('');
+    const [sampleSuccess, setSampleSuccess] = useState(null);
 
     useEffect(() => {
         const loadCategories = async () => {
@@ -57,6 +64,22 @@ export default function Recommendations() {
             setError(message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateSample = async () => {
+        setSampleLoading(true);
+        setSampleError('');
+        setSampleSuccess(null);
+        try {
+            const newResume = await resumeService.generateSampleResume(sampleCategory);
+            setSampleSuccess(newResume);
+        } catch (err) {
+            console.error('Failed to generate sample', err);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to generate sample resume.';
+            setSampleError(msg);
+        } finally {
+            setSampleLoading(false);
         }
     };
 
@@ -124,6 +147,60 @@ export default function Recommendations() {
                     </form>
 
                     {error && <div className="error-banner mt-4">{error}</div>}
+                </section>
+
+                <section className="resume-history-panel recommendation-panel">
+                    <div className="resume-history-panel-header">
+                        <h2 className="contrib-title">Generate Sample Resume</h2>
+                        <p className="contrib-subtitle">Don't have resumes yet? AI will create a realistic one for you to test recommendations.</p>
+                    </div>
+                    <div className="recommendation-form">
+                        <div className="editor-grid-2">
+                            <div className="editor-form-group">
+                                <label htmlFor="sample-category" className="editor-label">Category</label>
+                                <select
+                                    id="sample-category"
+                                    className="input"
+                                    value={sampleCategory}
+                                    onChange={(e) => setSampleCategory(e.target.value)}
+                                >
+                                    {categories.map((cat) => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="editor-form-group" style={{ justifyContent: 'flex-end' }}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleGenerateSample}
+                                    disabled={sampleLoading}
+                                >
+                                    {sampleLoading ? (
+                                        <><Loader2 className="icon-sm mr-2 animate-spin" /> Generating...</>
+                                    ) : (
+                                        <><Wand2 className="icon-sm mr-2" /> Generate Sample</>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                        {sampleError && <div className="error-banner mt-4">{sampleError}</div>}
+                        {sampleSuccess && (
+                            <div className="recommendation-form" style={{ marginTop: '1rem' }}>
+                                <p style={{ fontSize: '0.9rem' }}>
+                                    ✅ Created <strong>{sampleSuccess.title}</strong>
+                                </p>
+                                <div className="flex gap-2" style={{ marginTop: '0.5rem' }}>
+                                    <Button size="sm" onClick={() => navigate(`/editor/${sampleSuccess.id}`)}>
+                                        Open in Editor
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')}>
+                                        Go to Dashboard
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </section>
 
                 {result && recommendation && (
