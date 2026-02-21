@@ -1,79 +1,44 @@
 export const mockResume = {
     id: "1",
-    title: "Senior Full Stack Engineer",
+    title: "",
     sections: [
         {
             id: "personal",
             title: "Personal Details",
             type: "personal",
             content: {
-                name: "Alex Dev",
-                email: "alex@example.com",
-                phone: "+1 234 567 890",
-                location: "San Francisco, CA",
-                linkedin: "linkedin.com/in/alexdev",
-                github: "github.com/alexdev",
-                website: "alexdev.dev",
+                name: "",
+                email: "",
+                phone: "",
+                location: "",
+                linkedin: "",
+                github: "",
+                website: "",
             }
         },
         {
             id: "experience",
             title: "Experience",
             type: "list",
-            content: [
-                {
-                    id: "exp-1",
-                    title: "Senior Full Stack Engineer",
-                    subtitle: "Tech Corp",
-                    date: "2020 - Present",
-                    location: "Remote",
-                    description: "- Led migration to microservices.\n- Improved page performance by 40%."
-                }
-            ]
+            content: []
         },
         {
             id: "projects",
             title: "Projects",
             type: "list",
-            content: [
-                {
-                    id: "proj-1",
-                    title: "Realtime Analytics Dashboard",
-                    subtitle: "React, Node.js, PostgreSQL",
-                    date: "2024",
-                    link: "github.com/alexdev/analytics-dashboard",
-                    description: "- Built a multi-tenant analytics platform.\n- Implemented role-based access and export workflows."
-                }
-            ]
+            content: []
         },
         {
             id: "achievements",
             title: "Achievements",
             type: "list",
-            content: [
-                {
-                    id: "ach-1",
-                    title: "Employee of the Year",
-                    subtitle: "Tech Corp",
-                    date: "2023",
-                    description: "- Recognized for leading a high-impact migration project."
-                }
-            ]
+            content: []
         },
         {
             id: "education",
             title: "Education",
             type: "list",
-            content: [
-                {
-                    id: "edu-1",
-                    title: "B.S. Computer Science",
-                    subtitle: "University of California, Berkeley",
-                    date: "2012 - 2016",
-                    location: "Berkeley, CA",
-                    description: "- Relevant coursework: Distributed Systems, Databases."
-                }
-            ]
+            content: []
         }
     ]
 }
