@@ -33,6 +33,18 @@ const buildContributionData = async (resumes) => {
     return buildContributionDataFromVersionLists(versionLists);
 };
 
+const getCompanyTypeSummary = (resume) => {
+    const profile = resume?.companyTypeProfile;
+    if (!profile || profile.totalCompanies < 1) return null;
+    if (!profile.primaryCompanyType || profile.primaryCompanyType === 'unknown') return null;
+
+    return {
+        type: profile.primaryCompanyType,
+        label: profile.primaryCompanyTypeLabel || 'Unknown',
+        companyCount: profile.totalCompanies,
+    };
+};
+
 export default function Dashboard() {
     const [resumes, setResumes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -170,51 +182,66 @@ export default function Dashboard() {
                 />
 
                 <div className="resume-grid">
-                    {resumes.map((resume) => (
-                        <div key={resume.id} className="resume-card group">
-                            <div className="resume-card-header">
-                                <Link to={`/editor/${resume.id}`} className="block flex-1">
-                                    <div className="resume-icon-wrapper">
-                                        <FileText className="icon-md" />
-                                    </div>
-                                    <h3 className="resume-title">{resume.title}</h3>
-                                </Link>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="btn-icon-more">
-                                            <MoreVertical className="icon-sm" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => navigate(`/editor/${resume.id}`)}>
-                                            Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => navigate(`/resumes/${resume.id}/history`)}>
-                                            View Changes
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            className="text-destructive"
-                                            onClick={() => openDeleteDialog(resume)}
-                                            disabled={deletingId === resume.id}
-                                        >
-                                            {deletingId === resume.id ? 'Deleting...' : 'Delete'}
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
+                    {resumes.map((resume) => {
+                        const companyTypeSummary = getCompanyTypeSummary(resume);
+                        const companyCountLabel = companyTypeSummary?.companyCount === 1 ? 'company' : 'companies';
 
-                            <div className="resume-meta">
-                                <Clock className="icon-xs mr-1" />
-                                <span>Edited {new Date(resume.updatedAt).toLocaleDateString()}</span>
+                        return (
+                            <div key={resume.id} className="resume-card group">
+                                <div className="resume-card-header">
+                                    <Link to={`/editor/${resume.id}`} className="block flex-1">
+                                        <div className="resume-icon-wrapper">
+                                            <FileText className="icon-md" />
+                                        </div>
+                                        <h3 className="resume-title">{resume.title}</h3>
+                                        {companyTypeSummary && (
+                                            <div className="resume-company-type-row">
+                                                <span className="resume-company-type-pill" data-type={companyTypeSummary.type}>
+                                                    {companyTypeSummary.label}
+                                                </span>
+                                                <span className="resume-company-type-count">
+                                                    {companyTypeSummary.companyCount} {companyCountLabel}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </Link>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="btn-icon-more">
+                                                <MoreVertical className="icon-sm" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => navigate(`/editor/${resume.id}`)}>
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => navigate(`/resumes/${resume.id}/history`)}>
+                                                View Changes
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="text-destructive"
+                                                onClick={() => openDeleteDialog(resume)}
+                                                disabled={deletingId === resume.id}
+                                            >
+                                                {deletingId === resume.id ? 'Deleting...' : 'Delete'}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+
+                                <div className="resume-meta">
+                                    <Clock className="icon-xs mr-1" />
+                                    <span>Edited {new Date(resume.updatedAt).toLocaleDateString()}</span>
+                                </div>
+                                <div className="resume-version-count">
+                                    {resume._count?.versions || 0} versions
+                                </div>
+                                <Link to={`/resumes/${resume.id}/history`} className="resume-history-link">
+                                    View field-level history
+                                </Link>
                             </div>
-                            <div className="resume-version-count">
-                                {resume._count?.versions || 0} versions
-                            </div>
-                            <Link to={`/resumes/${resume.id}/history`} className="resume-history-link">
-                                View field-level history
-                            </Link>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {resumes.length === 0 && (
                         <div className="dashboard-empty-state">

@@ -51,4 +51,14 @@ export const resumeService = {
     deleteResume: async (id) => {
         await api.delete(`/resumes/${id}`);
     },
+
+    getAllCompanyTypes: async () => {
+        const response = await api.get('/resumes/company-types');
+        return response.data;
+    },
+
+    getResumeCompanyTypes: async (id) => {
+        const response = await api.get(`/resumes/${id}/company-types`);
+        return response.data;
+    },
 };

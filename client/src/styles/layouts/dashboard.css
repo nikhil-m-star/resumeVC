@@ -289,6 +289,94 @@
     color: hsl(var(--primary));
 }
 
+.resume-company-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+    flex-wrap: wrap;
+}
+
+.resume-company-type-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.16rem 0.52rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    background-color: hsl(var(--muted) / 0.62);
+    color: hsl(var(--foreground));
+}
+
+.resume-company-type-pill[data-type="startup"] {
+    color: hsl(218 80% 35%);
+    background-color: hsl(218 92% 78% / 0.42);
+    border-color: hsl(218 75% 48% / 0.35);
+}
+
+.resume-company-type-pill[data-type="product"] {
+    color: hsl(262 68% 38%);
+    background-color: hsl(268 96% 82% / 0.4);
+    border-color: hsl(266 80% 54% / 0.3);
+}
+
+.resume-company-type-pill[data-type="service_consulting"] {
+    color: hsl(28 82% 35%);
+    background-color: hsl(42 96% 76% / 0.45);
+    border-color: hsl(35 84% 48% / 0.35);
+}
+
+.resume-company-type-pill[data-type="enterprise"] {
+    color: hsl(211 70% 34%);
+    background-color: hsl(205 88% 78% / 0.42);
+    border-color: hsl(209 68% 49% / 0.35);
+}
+
+.resume-company-type-pill[data-type="government_public"] {
+    color: hsl(221 68% 34%);
+    background-color: hsl(220 95% 84% / 0.44);
+    border-color: hsl(220 76% 52% / 0.35);
+}
+
+.resume-company-type-pill[data-type="nonprofit"] {
+    color: hsl(154 76% 26%);
+    background-color: hsl(145 75% 74% / 0.43);
+    border-color: hsl(146 58% 41% / 0.35);
+}
+
+.resume-company-type-pill[data-type="education_research"] {
+    color: hsl(266 64% 36%);
+    background-color: hsl(275 94% 84% / 0.41);
+    border-color: hsl(272 75% 56% / 0.32);
+}
+
+.resume-company-type-pill[data-type="finance_fintech"] {
+    color: hsl(160 90% 22%);
+    background-color: hsl(165 90% 74% / 0.42);
+    border-color: hsl(165 70% 40% / 0.35);
+}
+
+.resume-company-type-pill[data-type="healthcare_life_sciences"] {
+    color: hsl(351 72% 36%);
+    background-color: hsl(350 94% 84% / 0.46);
+    border-color: hsl(349 72% 52% / 0.35);
+}
+
+.resume-company-type-pill[data-type="ecommerce_retail"] {
+    color: hsl(32 82% 32%);
+    background-color: hsl(33 100% 77% / 0.42);
+    border-color: hsl(34 82% 50% / 0.35);
+}
+
+.resume-company-type-count {
+    font-size: 0.73rem;
+    color: hsl(var(--muted-foreground));
+}
+
 .resume-meta {
     display: flex;
     align-items: center;

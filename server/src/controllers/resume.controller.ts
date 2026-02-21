@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z, ZodError } from 'zod';
+import { buildResumeCompanyTypeProfile, COMPANY_TYPE_LABELS } from '../services/company-type.service.js';
 
 const prisma = new PrismaClient();
 
@@ -51,7 +52,11 @@ export const getUserResumes = async (req: Request, res: Response): Promise<any> 
             orderBy: { updatedAt: 'desc' },
             include: { _count: { select: { versions: true } } }
         });
-        res.json(resumes);
+        const enrichedResumes = resumes.map((resume) => ({
+            ...resume,
+            companyTypeProfile: buildResumeCompanyTypeProfile(resume.content),
+        }));
+        res.json(enrichedResumes);
     } catch (error) {
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -69,7 +74,10 @@ export const getResumeById = async (req: Request, res: Response): Promise<any> =
 
         if (!resume) return res.status(404).json({ message: 'Resume not found' });
 
-        res.json(resume);
+        res.json({
+            ...resume,
+            companyTypeProfile: buildResumeCompanyTypeProfile(resume.content),
+        });
     } catch (error) {
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -106,7 +114,10 @@ export const updateResume = async (req: Request, res: Response): Promise<any> =>
             },
         });
 
-        res.json(resume);
+        res.json({
+            ...resume,
+            companyTypeProfile: buildResumeCompanyTypeProfile(resume.content),
+        });
     } catch (error) {
         if (error instanceof ZodError) {
             return res.status(400).json({ errors: error.issues });
@@ -197,6 +208,96 @@ export const getDiff = async (req: Request, res: Response): Promise<any> => {
         }
 
         res.json({ version1: v1, version2: v2 });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const getResumeCompanyTypes = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const id = String(req.params.id);
+        // @ts-ignore
+        const userId = req.user?.userId;
+
+        const resume = await prisma.resume.findFirst({
+            where: { id, ownerId: userId, deletedAt: null },
+            select: {
+                id: true,
+                title: true,
+                updatedAt: true,
+                content: true,
+            },
+        });
+
+        if (!resume) return res.status(404).json({ message: 'Resume not found' });
+
+        const profile = buildResumeCompanyTypeProfile(resume.content);
+
+        res.json({
+            resumeId: resume.id,
+            title: resume.title,
+            updatedAt: resume.updatedAt,
+            ...profile,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const getUserResumeCompanyTypes = async (req: Request, res: Response): Promise<any> => {
+    try {
+        // @ts-ignore
+        const userId = req.user?.userId;
+
+        const resumes = await prisma.resume.findMany({
+            where: { ownerId: userId, deletedAt: null },
+            orderBy: { updatedAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                updatedAt: true,
+                content: true,
+            },
+        });
+
+        const summaries = resumes.map((resume) => {
+            const profile = buildResumeCompanyTypeProfile(resume.content);
+            return {
+                resumeId: resume.id,
+                title: resume.title,
+                updatedAt: resume.updatedAt,
+                ...profile,
+            };
+        });
+
+        const groupedMap = new Map<string, { count: number; resumeIds: string[]; titles: string[] }>();
+
+        summaries.forEach((summary) => {
+            if (summary.totalCompanies === 0 || summary.primaryCompanyType === 'unknown') return;
+            const existing = groupedMap.get(summary.primaryCompanyType) || { count: 0, resumeIds: [], titles: [] };
+            groupedMap.set(summary.primaryCompanyType, {
+                count: existing.count + 1,
+                resumeIds: [...existing.resumeIds, summary.resumeId],
+                titles: [...existing.titles, summary.title],
+            });
+        });
+
+        const groupedByPrimaryType = Array.from(groupedMap.entries())
+            .map(([type, value]) => ({
+                type,
+                typeLabel: COMPANY_TYPE_LABELS[type as keyof typeof COMPANY_TYPE_LABELS],
+                count: value.count,
+                resumeIds: value.resumeIds,
+                titles: value.titles,
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        res.json({
+            totalResumes: resumes.length,
+            categorizedResumes: summaries.filter((summary) => summary.primaryCompanyType !== 'unknown').length,
+            groupedByPrimaryType,
+            summaries,
+        });
     } catch (error) {
         res.status(500).json({ message: 'Internal server error' });
     }
