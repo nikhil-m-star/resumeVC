@@ -175,14 +175,31 @@ export class AIService {
             '- Make the person sound like a strong mid-senior candidate perfect for this role.',
         ].join('\n');
 
-        const raw = await this.callGroq(systemPrompt, `Generate a ${category} resume${companyType ? ` targeting ${companyType} companies` : ''} now.`, 1500);
-        const parsed = this.extractJsonObject(raw);
+        const maxAttempts = 3;
+        let lastError: Error | null = null;
 
-        if (!parsed || !Array.isArray(parsed.sections)) {
-            throw new Error('Failed to parse AI-generated resume. Please try again.');
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const userMsg = attempt === 1
+                    ? `Generate a ${category} resume${companyType ? ` targeting ${companyType} companies` : ''} now.`
+                    : `Generate a ${category} resume now. Return ONLY valid JSON, no markdown fences or extra text. Attempt ${attempt}.`;
+
+                const raw = await this.callGroq(systemPrompt, userMsg, 1500);
+                const parsed = this.extractJsonObject(raw);
+
+                if (parsed && Array.isArray(parsed.sections)) {
+                    return parsed;
+                }
+
+                lastError = new Error(`Attempt ${attempt}: AI returned invalid structure.`);
+                console.warn(`generateSampleResume attempt ${attempt} failed to parse, retrying...`);
+            } catch (err) {
+                lastError = err instanceof Error ? err : new Error(String(err));
+                console.warn(`generateSampleResume attempt ${attempt} threw error: ${lastError.message}`);
+            }
         }
 
-        return parsed;
+        throw new Error(lastError?.message || 'Failed to generate resume after multiple attempts. Please try again.');
     }
 
     private extractJsonObject(rawContent: string): Record<string, unknown> | null {
