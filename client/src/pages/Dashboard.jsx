@@ -3,14 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, FileText, Clock, MoreVertical, Loader2 } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
 import { Button } from '@/components/ui/button';
+import { BUILTIN_RESUME_CATEGORIES, DEFAULT_RESUME_CATEGORY } from '@/constants/resume-categories';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const DEFAULT_RESUME_CATEGORY = 'General';
 const DASHBOARD_RESUMES_CACHE_KEY = 'resumevc-dashboard-resumes-v1';
 
 const normalizeCategory = (category) => {
@@ -327,13 +326,18 @@ export default function Dashboard() {
                                 </div>
                                 <div className="grid gap-2 dashboard-create-category">
                                     <label htmlFor="category" className="form-label">Category</label>
-                                    <input
+                                    <select
                                         id="category"
                                         className="input"
-                                        placeholder="e.g. Product, Backend, Internship"
                                         value={newCategory}
                                         onChange={(e) => setNewCategory(e.target.value)}
-                                    />
+                                    >
+                                        {BUILTIN_RESUME_CATEGORIES.map((category) => (
+                                            <option key={category} value={category}>
+                                                {category}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <div className="dialog-footer">

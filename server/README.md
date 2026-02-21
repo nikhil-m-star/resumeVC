@@ -10,6 +10,8 @@ JWT_SECRET="<random-long-secret>"
 JWT_REFRESH_SECRET="<random-long-secret>"
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_PUBLISHABLE_KEY="pk_test_..."
+GROQ_API_KEY="gsk_..."
+GROQ_MODEL="llama-3.1-8b-instant"
 PORT=3001
 ```
 

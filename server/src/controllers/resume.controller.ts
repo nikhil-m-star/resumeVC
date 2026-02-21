@@ -2,6 +2,17 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z, ZodError } from 'zod';
 import { buildResumeCompanyTypeProfile, COMPANY_TYPE_LABELS } from '../services/company-type.service.js';
+import { AIService } from '../services/ai.service.js';
+import {
+    BUILTIN_RESUME_CATEGORIES,
+    DEFAULT_RESUME_CATEGORY,
+    resolveBuiltinCategory,
+} from '../constants/resume-categories.js';
+import {
+    buildContentPreview,
+    RecommendationCandidate,
+    recommendBestResumeVersion,
+} from '../services/resume-recommendation.service.js';
 
 const prisma = new PrismaClient();
 
@@ -18,6 +29,11 @@ const createVersionSchema = z.object({
     commitMsg: z.string().optional(),
 });
 
+const recommendResumeSchema = z.object({
+    targetCompany: z.string().min(2).max(120),
+    targetCategory: z.string().max(64).optional(),
+});
+
 export const createResume = async (req: Request, res: Response): Promise<any> => {
     try {
         const { title, category, description, isPublic } = createResumeSchema.parse(req.body);
@@ -29,7 +45,7 @@ export const createResume = async (req: Request, res: Response): Promise<any> =>
         const resume = await prisma.resume.create({
             data: {
                 title,
-                category,
+                category: resolveBuiltinCategory(category),
                 description,
                 isPublic,
                 ownerId: userId,
@@ -117,7 +133,7 @@ export const updateResume = async (req: Request, res: Response): Promise<any> =>
             where: { id },
             data: {
                 title,
-                category,
+                category: typeof category === 'string' ? resolveBuiltinCategory(category) : undefined,
                 description,
                 isPublic,
                 content,
@@ -313,7 +329,106 @@ export const getUserResumeCompanyTypes = async (req: Request, res: Response): Pr
     }
 };
 
-import { AIService } from '../services/ai.service.js';
+export const getRecommendationCategories = async (_req: Request, res: Response): Promise<any> => {
+    res.json({
+        categories: BUILTIN_RESUME_CATEGORIES,
+        defaultCategory: DEFAULT_RESUME_CATEGORY,
+    });
+};
+
+export const recommendResumeVersion = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const { targetCompany, targetCategory } = recommendResumeSchema.parse(req.body);
+        // @ts-ignore
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const resumes = await prisma.resume.findMany({
+            where: { ownerId: userId, deletedAt: null },
+            orderBy: { updatedAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                category: true,
+                content: true,
+                updatedAt: true,
+                versions: {
+                    orderBy: { version: 'desc' },
+                    take: 4,
+                    select: {
+                        id: true,
+                        version: true,
+                        content: true,
+                        createdAt: true,
+                        commitMsg: true,
+                    },
+                },
+            },
+        });
+
+        const candidates: RecommendationCandidate[] = [];
+
+        resumes.forEach((resume) => {
+            const normalizedCategory = resume.category || DEFAULT_RESUME_CATEGORY;
+
+            resume.versions.forEach((version) => {
+                const excerpt = buildContentPreview(version.content);
+                if (!excerpt) return;
+
+                candidates.push({
+                    key: `${resume.id}:${version.id}`,
+                    resumeId: resume.id,
+                    resumeTitle: resume.title,
+                    resumeCategory: normalizedCategory,
+                    versionId: version.id,
+                    versionLabel: `v${version.version}${version.commitMsg ? ` - ${version.commitMsg}` : ''}`,
+                    createdAt: version.createdAt,
+                    excerpt,
+                });
+            });
+
+            if (resume.versions.length > 0) return;
+            if (!resume.content) return;
+
+            const draftExcerpt = buildContentPreview(resume.content);
+            if (!draftExcerpt) return;
+
+            candidates.push({
+                key: `${resume.id}:draft`,
+                resumeId: resume.id,
+                resumeTitle: resume.title,
+                resumeCategory: normalizedCategory,
+                versionId: null,
+                versionLabel: 'Draft (latest autosave)',
+                createdAt: resume.updatedAt,
+                excerpt: draftExcerpt,
+            });
+        });
+
+        if (candidates.length === 0) {
+            return res.status(400).json({
+                message: 'No resume content available to evaluate. Add content and save at least one draft or version first.',
+            });
+        }
+
+        const recommendation = await recommendBestResumeVersion({
+            targetCompany: targetCompany.trim(),
+            targetCategory: resolveBuiltinCategory(targetCategory),
+            candidates,
+        });
+
+        res.json(recommendation);
+    } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ errors: error.issues });
+        }
+        console.error('Recommendation error:', error);
+        res.status(500).json({ message: 'Failed to generate recommendation' });
+    }
+};
 
 export const suggestAISkills = async (req: Request, res: Response): Promise<any> => {
     try {

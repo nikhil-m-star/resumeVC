@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard"
 import Editor from "@/pages/Editor"
 import Profile from "@/pages/Profile"
 import ResumeHistory from "@/pages/ResumeHistory"
+import Recommendations from "@/pages/Recommendations"
 import Login from "@/pages/Login"
 import Register from "@/pages/Register"
 
@@ -41,6 +42,11 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/recommendations" element={
+                <ProtectedRoute>
+                  <Recommendations />
                 </ProtectedRoute>
               } />
               <Route path="/editor" element={

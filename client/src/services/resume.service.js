@@ -61,4 +61,17 @@ export const resumeService = {
         const response = await api.get(`/resumes/${id}/company-types`);
         return response.data;
     },
+
+    getRecommendationCategories: async () => {
+        const response = await api.get('/ai/recommendation-categories');
+        return response.data;
+    },
+
+    getResumeRecommendation: async ({ targetCompany, targetCategory }) => {
+        const response = await api.post('/ai/recommend-resume', {
+            targetCompany,
+            targetCategory,
+        });
+        return response.data;
+    },
 };

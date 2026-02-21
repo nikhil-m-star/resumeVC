@@ -1028,3 +1028,91 @@
         align-items: flex-start;
     }
 }
+
+.recommendation-main {
+    display: grid;
+    gap: 1rem;
+}
+
+.recommendation-panel {
+    margin-bottom: 0;
+}
+
+.recommendation-form {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.recommendation-results-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.recommendation-highlight {
+    border-color: hsl(var(--primary) / 0.45);
+    background: linear-gradient(165deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.08) 100%);
+}
+
+.recommendation-highlight-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.recommendation-fit-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--primary) / 0.4);
+    background-color: hsl(var(--primary) / 0.12);
+    color: hsl(var(--foreground));
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.28rem 0.58rem;
+    white-space: nowrap;
+}
+
+.recommendation-reasoning {
+    margin-top: 0.9rem;
+    color: hsl(var(--foreground));
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.recommendation-meta-row {
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.76rem;
+}
+
+.recommendation-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+}
+
+.recommendation-actions {
+    margin-top: 0.95rem;
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.recommendation-list {
+    display: grid;
+    gap: 0.45rem;
+    padding-left: 1rem;
+    margin: 0;
+}
+
+.recommendation-list li {
+    color: hsl(var(--foreground));
+    font-size: 0.84rem;
+    line-height: 1.45;
+}

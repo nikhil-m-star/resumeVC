@@ -45,6 +45,9 @@ export default function AppLayout() {
                             <Link to="/profile" className="nav-item">
                                 Profile
                             </Link>
+                            <Link to="/recommendations" className="nav-item">
+                                Recommendations
+                            </Link>
                         </nav>
                     </div>
                     <div className="header-actions">
@@ -82,6 +85,9 @@ export default function AppLayout() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => navigate('/profile')}>
                                             Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => navigate('/recommendations')}>
+                                            Recommendations
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={handleLogout} className="logout-item">
