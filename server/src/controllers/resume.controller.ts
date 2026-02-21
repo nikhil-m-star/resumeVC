@@ -462,16 +462,20 @@ export const generateSampleResume = async (req: Request, res: Response): Promise
         const userId = req.user?.userId;
         if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-        const { category } = req.body;
+        const { category, companyType } = req.body;
         const resolvedCategory = resolveBuiltinCategory(category || DEFAULT_RESUME_CATEGORY);
 
-        const sampleContent = await AIService.getInstance().generateSampleResume(resolvedCategory);
+        const sampleContent = await AIService.getInstance().generateSampleResume(resolvedCategory, companyType || undefined);
+
+        const titleParts = ['Sample', resolvedCategory];
+        if (companyType) titleParts.push(`(${companyType})`);
+        titleParts.push('Resume');
 
         // Create the resume in the DB
         const resume = await prisma.resume.create({
             data: {
-                title: `Sample ${resolvedCategory} Resume`,
-                description: `AI-generated sample for ${resolvedCategory}`,
+                title: titleParts.join(' '),
+                description: `AI-generated sample for ${resolvedCategory}${companyType ? ` targeting ${companyType}` : ''}`,
                 category: resolvedCategory,
                 isPublic: false,
                 ownerId: userId,

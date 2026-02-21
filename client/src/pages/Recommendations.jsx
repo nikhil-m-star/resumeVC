@@ -18,6 +18,7 @@ export default function Recommendations() {
 
     // Sample generation state
     const [sampleCategory, setSampleCategory] = useState(DEFAULT_RESUME_CATEGORY);
+    const [sampleCompanyType, setSampleCompanyType] = useState('');
     const [sampleLoading, setSampleLoading] = useState(false);
     const [sampleError, setSampleError] = useState('');
     const [sampleSuccess, setSampleSuccess] = useState(null);
@@ -72,7 +73,7 @@ export default function Recommendations() {
         setSampleError('');
         setSampleSuccess(null);
         try {
-            const newResume = await resumeService.generateSampleResume(sampleCategory);
+            const newResume = await resumeService.generateSampleResume(sampleCategory, sampleCompanyType || undefined);
             setSampleSuccess(newResume);
         } catch (err) {
             console.error('Failed to generate sample', err);
@@ -169,108 +170,130 @@ export default function Recommendations() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="editor-form-group" style={{ justifyContent: 'flex-end' }}>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleGenerateSample}
-                                    disabled={sampleLoading}
+                            <div className="editor-form-group">
+                                <label htmlFor="sample-company-type" className="editor-label">Company Type</label>
+                                <select
+                                    id="sample-company-type"
+                                    className="input"
+                                    value={sampleCompanyType}
+                                    onChange={(e) => setSampleCompanyType(e.target.value)}
                                 >
-                                    {sampleLoading ? (
-                                        <><Loader2 className="icon-sm mr-2 animate-spin" /> Generating...</>
-                                    ) : (
-                                        <><Wand2 className="icon-sm mr-2" /> Generate Sample</>
-                                    )}
+                                    <option value="">Any / General</option>
+                                    <option value="FAANG">FAANG (Google, Meta, etc.)</option>
+                                    <option value="Startup">Startup</option>
+                                    <option value="Enterprise">Enterprise / Corporate</option>
+                                    <option value="Fintech">Fintech</option>
+                                    <option value="Healthcare">Healthcare / Biotech</option>
+                                    <option value="E-commerce">E-commerce</option>
+                                    <option value="Consulting">Consulting</option>
+                                    <option value="Government">Government / Public Sector</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '0.75rem' }}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleGenerateSample}
+                                disabled={sampleLoading}
+                            >
+                                {sampleLoading ? (
+                                    <><Loader2 className="icon-sm mr-2 animate-spin" /> Generating...</>
+                                ) : (
+                                    <><Wand2 className="icon-sm mr-2" /> Generate Sample</>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                    {sampleError && <div className="error-banner mt-4">{sampleError}</div>}
+                    {sampleSuccess && (
+                        <div className="recommendation-form" style={{ marginTop: '1rem' }}>
+                            <p style={{ fontSize: '0.9rem' }}>
+                                ✅ Created <strong>{sampleSuccess.title}</strong>
+                            </p>
+                            <div className="flex gap-2" style={{ marginTop: '0.5rem' }}>
+                                <Button size="sm" onClick={() => navigate(`/editor/${sampleSuccess.id}`)}>
+                                    Open in Editor
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')}>
+                                    Go to Dashboard
                                 </Button>
                             </div>
                         </div>
-                        {sampleError && <div className="error-banner mt-4">{sampleError}</div>}
-                        {sampleSuccess && (
-                            <div className="recommendation-form" style={{ marginTop: '1rem' }}>
-                                <p style={{ fontSize: '0.9rem' }}>
-                                    ✅ Created <strong>{sampleSuccess.title}</strong>
-                                </p>
-                                <div className="flex gap-2" style={{ marginTop: '0.5rem' }}>
-                                    <Button size="sm" onClick={() => navigate(`/editor/${sampleSuccess.id}`)}>
-                                        Open in Editor
-                                    </Button>
-                                    <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')}>
-                                        Go to Dashboard
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                    )}
+            </div>
+        </section>
+
+                {
+        result && recommendation && (
+            <div className="recommendation-results-grid">
+                <section className="resume-history-panel recommendation-highlight">
+                    <div className="recommendation-highlight-header">
+                        <div>
+                            <p className="resume-history-kicker">Best Match</p>
+                            <h2 className="contrib-title">{recommendation.resumeTitle}</h2>
+                            <p className="contrib-subtitle">{recommendation.versionLabel} • {recommendation.resumeCategory}</p>
+                        </div>
+                        <div className="recommendation-fit-pill">
+                            <Target className="icon-sm" />
+                            <span>{result.fitScore}% fit</span>
+                        </div>
+                    </div>
+
+                    <p className="recommendation-reasoning">{result.reasoning}</p>
+
+                    <div className="recommendation-meta-row">
+                        <span><Building2 className="icon-xs" /> Company: {result.targetCompany}</span>
+                        <span><CheckCircle2 className="icon-xs" /> Category: {result.targetCategory}</span>
+                        <span>{result.usedModel ? 'Groq model used' : 'Fallback heuristic used'}</span>
+                    </div>
+
+                    <div className="recommendation-actions">
+                        <Link to={`/editor/${recommendation.resumeId}`}>
+                            <Button>Open Recommended Resume</Button>
+                        </Link>
+                        <Link to={`/resumes/${recommendation.resumeId}/history`}>
+                            <Button variant="outline">Open History</Button>
+                        </Link>
                     </div>
                 </section>
 
-                {result && recommendation && (
-                    <div className="recommendation-results-grid">
-                        <section className="resume-history-panel recommendation-highlight">
-                            <div className="recommendation-highlight-header">
-                                <div>
-                                    <p className="resume-history-kicker">Best Match</p>
-                                    <h2 className="contrib-title">{recommendation.resumeTitle}</h2>
-                                    <p className="contrib-subtitle">{recommendation.versionLabel} • {recommendation.resumeCategory}</p>
-                                </div>
-                                <div className="recommendation-fit-pill">
-                                    <Target className="icon-sm" />
-                                    <span>{result.fitScore}% fit</span>
-                                </div>
-                            </div>
-
-                            <p className="recommendation-reasoning">{result.reasoning}</p>
-
-                            <div className="recommendation-meta-row">
-                                <span><Building2 className="icon-xs" /> Company: {result.targetCompany}</span>
-                                <span><CheckCircle2 className="icon-xs" /> Category: {result.targetCategory}</span>
-                                <span>{result.usedModel ? 'Groq model used' : 'Fallback heuristic used'}</span>
-                            </div>
-
-                            <div className="recommendation-actions">
-                                <Link to={`/editor/${recommendation.resumeId}`}>
-                                    <Button>Open Recommended Resume</Button>
-                                </Link>
-                                <Link to={`/resumes/${recommendation.resumeId}/history`}>
-                                    <Button variant="outline">Open History</Button>
-                                </Link>
-                            </div>
-                        </section>
-
-                        <section className="resume-history-panel">
-                            <div className="resume-history-panel-header">
-                                <h2 className="contrib-title">What To Fill (Category)</h2>
-                            </div>
-                            <ul className="recommendation-list">
-                                {getSafeArray(result.categoryRecommendations).map((item) => (
-                                    <li key={item}>{item}</li>
-                                ))}
-                            </ul>
-                        </section>
-
-                        <section className="resume-history-panel">
-                            <div className="resume-history-panel-header">
-                                <h2 className="contrib-title">Company-Specific Recommendations</h2>
-                            </div>
-                            <ul className="recommendation-list">
-                                {getSafeArray(result.companySpecificRecommendations).map((item) => (
-                                    <li key={item}>{item}</li>
-                                ))}
-                            </ul>
-                        </section>
-
-                        <section className="resume-history-panel">
-                            <div className="resume-history-panel-header">
-                                <h2 className="contrib-title">Missing Content To Add</h2>
-                            </div>
-                            <ul className="recommendation-list">
-                                {getSafeArray(result.missingResumeContent).map((item) => (
-                                    <li key={item}>{item}</li>
-                                ))}
-                            </ul>
-                        </section>
+                <section className="resume-history-panel">
+                    <div className="resume-history-panel-header">
+                        <h2 className="contrib-title">What To Fill (Category)</h2>
                     </div>
-                )}
+                    <ul className="recommendation-list">
+                        {getSafeArray(result.categoryRecommendations).map((item) => (
+                            <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </section>
+
+                <section className="resume-history-panel">
+                    <div className="resume-history-panel-header">
+                        <h2 className="contrib-title">Company-Specific Recommendations</h2>
+                    </div>
+                    <ul className="recommendation-list">
+                        {getSafeArray(result.companySpecificRecommendations).map((item) => (
+                            <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </section>
+
+                <section className="resume-history-panel">
+                    <div className="resume-history-panel-header">
+                        <h2 className="contrib-title">Missing Content To Add</h2>
+                    </div>
+                    <ul className="recommendation-list">
+                        {getSafeArray(result.missingResumeContent).map((item) => (
+                            <li key={item}>{item}</li>
+                        ))}
+                    </ul>
+                </section>
             </div>
-        </div>
+        )
+    }
+            </div >
+        </div >
     );
 }

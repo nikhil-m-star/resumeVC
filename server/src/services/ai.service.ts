@@ -118,10 +118,15 @@ export class AIService {
         return raw.split(/[,\n]/).map(s => s.replace(/^[-*•"\s]+|["\s]+$/g, '').trim()).filter(Boolean).slice(0, 12);
     }
 
-    public async generateSampleResume(category: string): Promise<Record<string, unknown>> {
+    public async generateSampleResume(category: string, companyType?: string): Promise<Record<string, unknown>> {
+        const companyContext = companyType
+            ? `The resume should be tailored for someone targeting "${companyType}" companies (use relevant company names, tech stacks, and metrics typical for ${companyType} roles).`
+            : 'Use a mix of well-known and mid-sized tech companies.';
+
         const systemPrompt = [
             'You are an expert resume writer.',
             `Generate a realistic, detailed sample resume for a "${category}" professional.`,
+            companyContext,
             'Return ONLY valid JSON with this exact structure (no markdown, no explanation):',
             '{',
             '  "sections": [',
@@ -159,7 +164,7 @@ export class AIService {
             '- Make the person sound like a strong mid-senior candidate.',
         ].join('\n');
 
-        const raw = await this.callGroq(systemPrompt, `Generate a ${category} resume now.`, 1500);
+        const raw = await this.callGroq(systemPrompt, `Generate a ${category} resume${companyType ? ` targeting ${companyType} companies` : ''} now.`, 1500);
         const parsed = this.extractJsonObject(raw);
 
         if (!parsed || !Array.isArray(parsed.sections)) {
