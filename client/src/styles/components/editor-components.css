@@ -43,6 +43,10 @@
     color: hsl(var(--muted-foreground));
 }
 
+.sidebar-item .truncate {
+    flex: 1;
+}
+
 .sidebar-item:hover {
     background-color: hsl(var(--muted));
     color: hsl(var(--foreground));
@@ -62,6 +66,38 @@
 
 .sidebar-item:hover .drag-handle {
     opacity: 0.5;
+}
+
+.sidebar-order-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-left: auto;
+}
+
+.sidebar-order-btn {
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.3rem;
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+.sidebar-order-btn:hover:not(:disabled) {
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--muted));
+    border-color: hsl(var(--input));
+}
+
+.sidebar-order-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .sidebar-footer {

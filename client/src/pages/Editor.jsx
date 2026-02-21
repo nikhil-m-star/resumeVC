@@ -444,6 +444,27 @@ export default function Editor() {
         updateActiveListItems((items) => items.filter((item) => item.id !== itemId))
     }
 
+    const handleMoveSection = (sectionId, direction) => {
+        setResumeData((prev) => {
+            if (!prev?.sections?.length) return prev
+
+            const currentIndex = prev.sections.findIndex((section) => section.id === sectionId)
+            if (currentIndex === -1) return prev
+
+            const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+            if (targetIndex < 0 || targetIndex >= prev.sections.length) return prev
+
+            const nextSections = [...prev.sections]
+            const [movedSection] = nextSections.splice(currentIndex, 1)
+            nextSections.splice(targetIndex, 0, movedSection)
+
+            return {
+                ...prev,
+                sections: nextSections,
+            }
+        })
+    }
+
     const handleCommitRequest = () => {
         if (isGuest) {
             setAuthPromptTitle("Save Your Progress");
@@ -586,6 +607,7 @@ export default function Editor() {
                 sections={resumeData.sections}
                 activeSection={activeSectionId}
                 onSelectSection={setActiveSectionId}
+                onMoveSection={handleMoveSection}
             />
 
             {/* Main Editor Area */}
