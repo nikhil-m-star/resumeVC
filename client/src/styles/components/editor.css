@@ -52,3 +52,61 @@
     margin-left: 1.5rem;
     margin-bottom: 0.5rem;
 }
+
+/* AI Recommended badge in editor list items */
+.ai-recommended-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--primary, #6366f1);
+    background: var(--primary-alpha, rgba(99, 102, 241, 0.1));
+    border: 1px solid var(--primary-alpha-2, rgba(99, 102, 241, 0.2));
+    border-radius: 999px;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Inline AI tag in resume preview */
+.ai-tag-inline {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.35rem;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--primary, #6366f1);
+    background: var(--primary-alpha, rgba(99, 102, 241, 0.08));
+    border: 1px solid var(--primary-alpha-2, rgba(99, 102, 241, 0.15));
+    border-radius: 3px;
+    vertical-align: super;
+}
+
+/* Subtle left border for AI-generated items in preview */
+.ai-generated-item {
+    border-left: 2px solid var(--primary-alpha-2, rgba(99, 102, 241, 0.25));
+    padding-left: 0.5rem;
+}
+
+/* Hide AI badges and tags during printing */
+@media print {
+
+    .ai-recommended-badge,
+    .ai-tag-inline,
+    .ai-generated-item {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .ai-tag-inline,
+    .ai-recommended-badge {
+        display: none !important;
+    }
+}

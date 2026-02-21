@@ -568,9 +568,12 @@ export default function Editor() {
                         const leftMeta = [item.subtitle, item.location].filter(Boolean).join(" • ")
 
                         return (
-                            <div key={item.id} className="preview-list-item">
+                            <div key={item.id} className={`preview-list-item${item.aiGenerated ? ' ai-generated-item' : ''}`}>
                                 <div className="preview-list-row">
-                                    <h4 className="preview-item-title">{item.title || "Untitled"}</h4>
+                                    <h4 className="preview-item-title">
+                                        {item.title || "Untitled"}
+                                        {item.aiGenerated && <span className="ai-tag-inline">AI</span>}
+                                    </h4>
                                     {item.date && <span className="preview-item-date">{item.date}</span>}
                                 </div>
                                 {(leftMeta || item.link) && (
@@ -843,7 +846,14 @@ export default function Editor() {
                                         renderItem={(item) => (
                                             <SortableItem key={item.id} id={item.id} className="sortable-card">
                                                 <div className="list-item-actions">
-                                                    <span className="sortable-meta">Drag to reorder</span>
+                                                    <span className="sortable-meta">
+                                                        Drag to reorder
+                                                        {item.aiGenerated && (
+                                                            <span className="ai-recommended-badge">
+                                                                <Sparkles className="icon-xs" /> AI Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
