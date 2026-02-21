@@ -125,7 +125,7 @@ export class AIService {
 
         const contextBlock = existingContext
             ? `\nIMPORTANT: The user already has resume content. Use their real experience as the foundation. Here is their existing data:\n${existingContext}\nBuild on this real data — keep their name, companies, and roles but enhance and expand the content. Add more detail, metrics, and professionalism.`
-            : '';
+            : `\nThe user has NO existing resume data. You MUST invent a complete, realistic profile from scratch — generate a fictional name, email, phone, location, LinkedIn, GitHub, and website. Generate realistic company names, job titles, project names, and achievements that are the BEST FIT for a "${category}" role${companyType ? ` at ${companyType} companies` : ''}. Do NOT leave any field empty or use "..." as a value.`;
 
         const systemPrompt = [
             'You are an expert resume writer.',
@@ -159,14 +159,15 @@ export class AIService {
             '    ]}',
             '  ]',
             '}',
-            'Rules:',
-            '- Use realistic but fictional data (real-sounding company names, universities, etc.).',
+            'CRITICAL RULES:',
+            '- EVERY field must have a realistic value. NEVER leave any field as empty string "", "...", or placeholder.',
+            '- Generate a complete fictional identity with real-sounding name, email, phone number, and city.',
             '- Include 2-3 experience entries with 3-4 bullet points each.',
-            '- Include 2 project entries with concrete tech stacks and outcomes.',
-            '- Include 1-2 achievements.',
-            '- Include 1 education entry.',
-            '- Use quantifiable metrics in bullets (e.g., "Reduced latency by 40%").',
-            '- Make the person sound like a strong mid-senior candidate.',
+            '- Include 2 project entries with concrete tech stacks, GitHub links, and measurable outcomes.',
+            '- Include 1-2 achievements with specific awards, hackathon wins, or certifications.',
+            '- Include 1 education entry with university name, degree, GPA, and relevant coursework.',
+            '- Use quantifiable metrics in EVERY bullet (e.g., "Reduced latency by 40%", "Scaled to 500K users").',
+            '- Make the person sound like a strong mid-senior candidate perfect for this role.',
         ].join('\n');
 
         const raw = await this.callGroq(systemPrompt, `Generate a ${category} resume${companyType ? ` targeting ${companyType} companies` : ''} now.`, 1500);
