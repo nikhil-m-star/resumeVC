@@ -208,8 +208,9 @@ export default function Recommendations() {
                     {sampleError && <div className="error-banner mt-4">{sampleError}</div>}
                     {sampleSuccess && (
                         <div className="recommendation-form" style={{ marginTop: '1rem' }}>
-                            <p style={{ fontSize: '0.9rem' }}>
-                                ✅ Created <strong>{sampleSuccess.title}</strong>
+                            <p className="flex items-center gap-2" style={{ fontSize: '0.9rem' }}>
+                                <CheckCircle2 className="icon-sm" style={{ color: 'var(--color-success, #22c55e)' }} />
+                                Created <strong>{sampleSuccess.title}</strong>
                             </p>
                             <div className="flex gap-2" style={{ marginTop: '0.5rem' }}>
                                 <Button size="sm" onClick={() => navigate(`/editor/${sampleSuccess.id}`)}>
@@ -221,79 +222,76 @@ export default function Recommendations() {
                             </div>
                         </div>
                     )}
+                </section>
+
+                {result && recommendation && (
+                    <div className="recommendation-results-grid">
+                        <section className="resume-history-panel recommendation-highlight">
+                            <div className="recommendation-highlight-header">
+                                <div>
+                                    <p className="resume-history-kicker">Best Match</p>
+                                    <h2 className="contrib-title">{recommendation.resumeTitle}</h2>
+                                    <p className="contrib-subtitle">{recommendation.versionLabel} • {recommendation.resumeCategory}</p>
+                                </div>
+                                <div className="recommendation-fit-pill">
+                                    <Target className="icon-sm" />
+                                    <span>{result.fitScore}% fit</span>
+                                </div>
+                            </div>
+
+                            <p className="recommendation-reasoning">{result.reasoning}</p>
+
+                            <div className="recommendation-meta-row">
+                                <span><Building2 className="icon-xs" /> Company: {result.targetCompany}</span>
+                                <span><CheckCircle2 className="icon-xs" /> Category: {result.targetCategory}</span>
+                                <span>{result.usedModel ? 'Groq model used' : 'Fallback heuristic used'}</span>
+                            </div>
+
+                            <div className="recommendation-actions">
+                                <Link to={`/editor/${recommendation.resumeId}`}>
+                                    <Button>Open Recommended Resume</Button>
+                                </Link>
+                                <Link to={`/resumes/${recommendation.resumeId}/history`}>
+                                    <Button variant="outline">Open History</Button>
+                                </Link>
+                            </div>
+                        </section>
+
+                        <section className="resume-history-panel">
+                            <div className="resume-history-panel-header">
+                                <h2 className="contrib-title">What To Fill (Category)</h2>
+                            </div>
+                            <ul className="recommendation-list">
+                                {getSafeArray(result.categoryRecommendations).map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        </section>
+
+                        <section className="resume-history-panel">
+                            <div className="resume-history-panel-header">
+                                <h2 className="contrib-title">Company-Specific Recommendations</h2>
+                            </div>
+                            <ul className="recommendation-list">
+                                {getSafeArray(result.companySpecificRecommendations).map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        </section>
+
+                        <section className="resume-history-panel">
+                            <div className="resume-history-panel-header">
+                                <h2 className="contrib-title">Missing Content To Add</h2>
+                            </div>
+                            <ul className="recommendation-list">
+                                {getSafeArray(result.missingResumeContent).map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
+                            </ul>
+                        </section>
+                    </div>
+                )}
             </div>
-        </section>
-
-                {
-        result && recommendation && (
-            <div className="recommendation-results-grid">
-                <section className="resume-history-panel recommendation-highlight">
-                    <div className="recommendation-highlight-header">
-                        <div>
-                            <p className="resume-history-kicker">Best Match</p>
-                            <h2 className="contrib-title">{recommendation.resumeTitle}</h2>
-                            <p className="contrib-subtitle">{recommendation.versionLabel} • {recommendation.resumeCategory}</p>
-                        </div>
-                        <div className="recommendation-fit-pill">
-                            <Target className="icon-sm" />
-                            <span>{result.fitScore}% fit</span>
-                        </div>
-                    </div>
-
-                    <p className="recommendation-reasoning">{result.reasoning}</p>
-
-                    <div className="recommendation-meta-row">
-                        <span><Building2 className="icon-xs" /> Company: {result.targetCompany}</span>
-                        <span><CheckCircle2 className="icon-xs" /> Category: {result.targetCategory}</span>
-                        <span>{result.usedModel ? 'Groq model used' : 'Fallback heuristic used'}</span>
-                    </div>
-
-                    <div className="recommendation-actions">
-                        <Link to={`/editor/${recommendation.resumeId}`}>
-                            <Button>Open Recommended Resume</Button>
-                        </Link>
-                        <Link to={`/resumes/${recommendation.resumeId}/history`}>
-                            <Button variant="outline">Open History</Button>
-                        </Link>
-                    </div>
-                </section>
-
-                <section className="resume-history-panel">
-                    <div className="resume-history-panel-header">
-                        <h2 className="contrib-title">What To Fill (Category)</h2>
-                    </div>
-                    <ul className="recommendation-list">
-                        {getSafeArray(result.categoryRecommendations).map((item) => (
-                            <li key={item}>{item}</li>
-                        ))}
-                    </ul>
-                </section>
-
-                <section className="resume-history-panel">
-                    <div className="resume-history-panel-header">
-                        <h2 className="contrib-title">Company-Specific Recommendations</h2>
-                    </div>
-                    <ul className="recommendation-list">
-                        {getSafeArray(result.companySpecificRecommendations).map((item) => (
-                            <li key={item}>{item}</li>
-                        ))}
-                    </ul>
-                </section>
-
-                <section className="resume-history-panel">
-                    <div className="resume-history-panel-header">
-                        <h2 className="contrib-title">Missing Content To Add</h2>
-                    </div>
-                    <ul className="recommendation-list">
-                        {getSafeArray(result.missingResumeContent).map((item) => (
-                            <li key={item}>{item}</li>
-                        ))}
-                    </ul>
-                </section>
-            </div>
-        )
-    }
-            </div >
-        </div >
+        </div>
     );
 }

@@ -118,15 +118,20 @@ export class AIService {
         return raw.split(/[,\n]/).map(s => s.replace(/^[-*•"\s]+|["\s]+$/g, '').trim()).filter(Boolean).slice(0, 12);
     }
 
-    public async generateSampleResume(category: string, companyType?: string): Promise<Record<string, unknown>> {
+    public async generateSampleResume(category: string, companyType?: string, existingContext?: string): Promise<Record<string, unknown>> {
         const companyContext = companyType
             ? `The resume should be tailored for someone targeting "${companyType}" companies (use relevant company names, tech stacks, and metrics typical for ${companyType} roles).`
             : 'Use a mix of well-known and mid-sized tech companies.';
+
+        const contextBlock = existingContext
+            ? `\nIMPORTANT: The user already has resume content. Use their real experience as the foundation. Here is their existing data:\n${existingContext}\nBuild on this real data — keep their name, companies, and roles but enhance and expand the content. Add more detail, metrics, and professionalism.`
+            : '';
 
         const systemPrompt = [
             'You are an expert resume writer.',
             `Generate a realistic, detailed sample resume for a "${category}" professional.`,
             companyContext,
+            contextBlock,
             'Return ONLY valid JSON with this exact structure (no markdown, no explanation):',
             '{',
             '  "sections": [',

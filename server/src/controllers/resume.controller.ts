@@ -465,7 +465,40 @@ export const generateSampleResume = async (req: Request, res: Response): Promise
         const { category, companyType } = req.body;
         const resolvedCategory = resolveBuiltinCategory(category || DEFAULT_RESUME_CATEGORY);
 
-        const sampleContent = await AIService.getInstance().generateSampleResume(resolvedCategory, companyType || undefined);
+        // Fetch existing resumes for context
+        const existingResumes = await prisma.resume.findMany({
+            where: { ownerId: userId, deletedAt: null },
+            orderBy: { updatedAt: 'desc' },
+            take: 3,
+            select: { title: true, content: true, category: true },
+        });
+
+        const existingContext = existingResumes
+            .map((r) => {
+                if (!r.content) return null;
+                try {
+                    const parsed = typeof r.content === 'string' ? JSON.parse(r.content) : r.content;
+                    const sections = Array.isArray(parsed?.sections) ? parsed.sections : [];
+                    const snippets = sections.map((s: any) => {
+                        if (s.type === 'personal' && s.content?.name) return `Name: ${s.content.name}`;
+                        if (s.type === 'list' && Array.isArray(s.content)) {
+                            return s.content.slice(0, 2).map((item: any) =>
+                                `${item.title || ''} at ${item.subtitle || ''}`
+                            ).join('; ');
+                        }
+                        return null;
+                    }).filter(Boolean).join(' | ');
+                    return snippets ? `[${r.title}] ${snippets}` : null;
+                } catch { return null; }
+            })
+            .filter(Boolean)
+            .join('\n');
+
+        const sampleContent = await AIService.getInstance().generateSampleResume(
+            resolvedCategory,
+            companyType || undefined,
+            existingContext || undefined,
+        );
 
         const titleParts = ['Sample', resolvedCategory];
         if (companyType) titleParts.push(`(${companyType})`);
