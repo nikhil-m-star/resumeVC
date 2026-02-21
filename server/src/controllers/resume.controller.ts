@@ -52,13 +52,19 @@ export const getUserResumes = async (req: Request, res: Response): Promise<any> 
         const resumes = await prisma.resume.findMany({
             where: { ownerId: userId, deletedAt: null },
             orderBy: { updatedAt: 'desc' },
-            include: { _count: { select: { versions: true } } }
+            select: {
+                id: true,
+                title: true,
+                category: true,
+                description: true,
+                isPublic: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                _count: { select: { versions: true } },
+            },
         });
-        const enrichedResumes = resumes.map((resume) => ({
-            ...resume,
-            companyTypeProfile: buildResumeCompanyTypeProfile(resume.content),
-        }));
-        res.json(enrichedResumes);
+        res.json(resumes);
     } catch (error) {
         res.status(500).json({ message: 'Internal server error' });
     }

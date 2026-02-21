@@ -4,6 +4,27 @@ import api from '../services/api';
 
 const AuthContext = createContext();
 
+const parseStoredUser = (value) => {
+    if (!value) return null;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+};
+
+const getStoredSession = () => {
+    const storedToken = localStorage.getItem('token');
+    const parsedStoredUser = parseStoredUser(localStorage.getItem('user'));
+    return { storedToken, parsedStoredUser };
+};
+
+const getInitialUserFromStorage = () => {
+    const { storedToken, parsedStoredUser } = getStoredSession();
+    if (!storedToken || !parsedStoredUser) return null;
+    return parsedStoredUser;
+};
+
 export const useAuth = () => {
     return useContext(AuthContext);
 };
@@ -12,10 +33,10 @@ export const AuthProvider = ({ children }) => {
     const { isLoaded: clerkLoaded, isSignedIn, user: clerkUser } = useUser();
     const { signOut } = useClerk();
     const { isLoaded: clerkAuthLoaded, getToken } = useClerkAuth();
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(() => getInitialUserFromStorage());
+    const [loading, setLoading] = useState(false);
     const [socialAuthError, setSocialAuthError] = useState('');
-    const hasInitialized = useRef(false);
+    const hasInitialized = useRef(Boolean(getInitialUserFromStorage()));
 
     const clearAuthStorage = () => {
         localStorage.removeItem('token');
@@ -32,20 +53,21 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (!clerkLoaded || !clerkAuthLoaded) return;
-        if (isSignedIn && !clerkUser) return;
+        if (isSignedIn && !clerkUser) {
+            setLoading(true);
+            return;
+        }
 
         let cancelled = false;
 
         const syncAuth = async () => {
-            if (!hasInitialized.current) {
+            if (isSignedIn || !hasInitialized.current) {
                 setLoading(true);
             }
             setSocialAuthError('');
 
             try {
-                const storedUser = localStorage.getItem('user');
-                const storedToken = localStorage.getItem('token');
-                const parsedStoredUser = storedUser ? JSON.parse(storedUser) : null;
+                const { storedToken, parsedStoredUser } = getStoredSession();
 
                 if (!isSignedIn) {
                     if (parsedStoredUser?.authProvider === 'local' && storedToken) {
@@ -81,16 +103,16 @@ export const AuthProvider = ({ children }) => {
                 }
 
                 let clerkToken = null;
-                for (let attempt = 0; attempt < 3; attempt += 1) {
+                for (let attempt = 0; attempt < 2; attempt += 1) {
                     clerkToken = await getToken();
                     if (clerkToken) break;
-                    await new Promise((resolve) => setTimeout(resolve, 250));
+                    await new Promise((resolve) => setTimeout(resolve, 150));
                 }
 
                 let response;
                 let lastError;
 
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 2; i++) {
                     try {
                         response = await api.post(
                             '/auth/clerk-exchange',
@@ -105,13 +127,13 @@ export const AuthProvider = ({ children }) => {
                             {
                                 headers: clerkToken ? { Authorization: `Bearer ${clerkToken}` } : undefined,
                                 skipAuthRedirect: true,
+                                timeout: 4000,
                             }
                         );
-                        break; // Success
+                        break;
                     } catch (err) {
                         lastError = err;
-                        console.log(`Clerk exchange attempt ${i + 1} failed, retrying...`);
-                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // 1s, 2s, 3s backoff
+                        await new Promise((resolve) => setTimeout(resolve, 350 * (i + 1)));
                     }
                 }
 
@@ -138,9 +160,15 @@ export const AuthProvider = ({ children }) => {
                 if (!cancelled) setUser(exchangedUser);
             } catch (error) {
                 console.error('Failed to sync Clerk session', error);
-                clearAuthStorage();
+                const { storedToken, parsedStoredUser } = getStoredSession();
+                const hasCachedSession = Boolean(storedToken && parsedStoredUser);
+                if (!hasCachedSession) {
+                    clearAuthStorage();
+                }
                 if (!cancelled) {
-                    setUser(null);
+                    if (!hasCachedSession) {
+                        setUser(null);
+                    }
                     const isNetworkError = !error?.response;
                     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
                     const serverMessage =
@@ -163,7 +191,7 @@ export const AuthProvider = ({ children }) => {
         return () => {
             cancelled = true;
         };
-    }, [clerkLoaded, clerkAuthLoaded, isSignedIn, clerkUser?.id, getToken]);
+    }, [clerkLoaded, clerkAuthLoaded, isSignedIn, clerkUser, getToken]);
 
     const login = async (email, password) => {
         const response = await api.post('/auth/login', { email, password });
@@ -173,6 +201,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(normalizedUser));
         setUser(normalizedUser);
+        hasInitialized.current = true;
+        setLoading(false);
         return normalizedUser;
     };
 
@@ -184,6 +214,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(normalizedUser));
         setUser(normalizedUser);
+        hasInitialized.current = true;
+        setLoading(false);
         return normalizedUser;
     };
 
@@ -204,6 +236,8 @@ export const AuthProvider = ({ children }) => {
             clearAuthStorage();
             setSocialAuthError('');
             setUser(null);
+            setLoading(false);
+            hasInitialized.current = true;
         }
     };
 
