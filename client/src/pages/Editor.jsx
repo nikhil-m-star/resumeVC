@@ -158,7 +158,7 @@ const normalizeListItem = (sectionId, item = {}, index = 0) => ({
     location: normalizeTextValue(item.location),
     link: normalizeTextValue(item.link) || normalizeTextValue(item.url),
     description: normalizeDescription(item.description) || normalizeDescription(item.details),
-    ...(item.aiGenerated != null && { aiGenerated: Boolean(item.aiGenerated) }),
+    aiGenerated: item.aiGenerated === true || item.aiGenerated === 'true',
 })
 
 const normalizeSection = (section, defaultSection = null) => {
@@ -850,9 +850,7 @@ export default function Editor() {
                                                     <span className="sortable-meta">
                                                         Drag to reorder
                                                         {item.aiGenerated && (
-                                                            <span className="ai-recommended-badge">
-                                                                <Sparkles className="icon-xs" /> AI Recommended
-                                                            </span>
+                                                            <span className="ai-recommended-badge">✦ AI Recommended</span>
                                                         )}
                                                     </span>
                                                     <Button
