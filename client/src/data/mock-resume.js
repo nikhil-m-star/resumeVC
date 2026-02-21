@@ -12,6 +12,7 @@ export const mockResume = {
                 phone: "+1 234 567 890",
                 location: "San Francisco, CA",
                 linkedin: "linkedin.com/in/alexdev",
+                github: "github.com/alexdev",
                 website: "alexdev.dev",
             }
         },

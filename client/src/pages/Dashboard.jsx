@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, FileText, Clock, MoreVertical, Loader2 } from 'lucide-react';
+import { Plus, FileText, Clock, MoreVertical, Loader2, GitCommitHorizontal, CalendarDays, Flame } from 'lucide-react';
 import { resumeService } from '@/services/resume.service';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,9 +10,129 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const WEEKS_TO_SHOW = 20;
+const DAYS_TO_SHOW = WEEKS_TO_SHOW * 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const toDateKey = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const local = new Date(date);
+    local.setHours(0, 0, 0, 0);
+    const year = local.getFullYear();
+    const month = String(local.getMonth() + 1).padStart(2, '0');
+    const day = String(local.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getContributionLevel = (count, maxCount) => {
+    if (count <= 0 || maxCount <= 0) return 0;
+    if (maxCount === 1) return 4;
+
+    const ratio = count / maxCount;
+    if (ratio < 0.25) return 1;
+    if (ratio < 0.5) return 2;
+    if (ratio < 0.75) return 3;
+    return 4;
+};
+
+const calculateStreak = (countsByDate, startDate, endDate) => {
+    let streak = 0;
+    const cursor = new Date(endDate);
+
+    while (cursor >= startDate) {
+        const key = toDateKey(cursor);
+        if (!key || !countsByDate[key]) break;
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
+};
+
+const createContributionData = (countsByDate = {}) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (DAYS_TO_SHOW - 1));
+
+    const gridStart = new Date(startDate);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+
+    const totalGridDays = Math.floor((today.getTime() - gridStart.getTime()) / DAY_MS) + 1;
+
+    let totalCommits = 0;
+    let activeDays = 0;
+    let maxCommits = 0;
+
+    const rawCells = Array.from({ length: totalGridDays }).map((_, index) => {
+        const date = new Date(gridStart);
+        date.setDate(gridStart.getDate() + index);
+
+        const inRange = date >= startDate && date <= today;
+        const dateKey = toDateKey(date);
+        const count = inRange && dateKey ? (countsByDate[dateKey] || 0) : 0;
+
+        if (inRange) {
+            totalCommits += count;
+            if (count > 0) activeDays += 1;
+            if (count > maxCommits) maxCommits = count;
+        }
+
+        return {
+            dateKey,
+            count,
+            inRange,
+        };
+    });
+
+    const cells = rawCells.map((cell) => ({
+        ...cell,
+        level: cell.inRange ? getContributionLevel(cell.count, maxCommits) : 0,
+    }));
+
+    return {
+        cells,
+        totalCommits,
+        activeDays,
+        maxCommits,
+        streak: calculateStreak(countsByDate, startDate, today),
+    };
+};
+
+const buildContributionData = async (resumes) => {
+    const resumesWithVersions = resumes.filter((resume) => (resume._count?.versions || 0) > 0);
+
+    if (resumesWithVersions.length === 0) {
+        return createContributionData({});
+    }
+
+    const versionResponses = await Promise.allSettled(
+        resumesWithVersions.map((resume) => resumeService.getVersions(resume.id))
+    );
+
+    const countsByDate = {};
+
+    versionResponses.forEach((response) => {
+        if (response.status !== 'fulfilled') return;
+
+        const versions = Array.isArray(response.value) ? response.value : [];
+        versions.forEach((version) => {
+            const dateKey = toDateKey(version?.createdAt);
+            if (!dateKey) return;
+            countsByDate[dateKey] = (countsByDate[dateKey] || 0) + 1;
+        });
+    });
+
+    return createContributionData(countsByDate);
+};
+
 export default function Dashboard() {
     const [resumes, setResumes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activityLoading, setActivityLoading] = useState(true);
+    const [contributionData, setContributionData] = useState(() => createContributionData({}));
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [createLoading, setCreateLoading] = useState(false);
@@ -20,20 +140,34 @@ export default function Dashboard() {
     const [deletingId, setDeletingId] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchResumes();
+    const refreshContributionGraph = useCallback(async (resumeList) => {
+        setActivityLoading(true);
+        try {
+            const graphData = await buildContributionData(resumeList);
+            setContributionData(graphData);
+        } catch (error) {
+            console.error('Failed to build contribution graph', error);
+            setContributionData(createContributionData({}));
+        } finally {
+            setActivityLoading(false);
+        }
     }, []);
 
-    const fetchResumes = async () => {
-        try {
-            const data = await resumeService.getAllResumes();
-            setResumes(data);
-        } catch (error) {
-            console.error('Failed to fetch resumes', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        const loadResumes = async () => {
+            try {
+                const data = await resumeService.getAllResumes();
+                setResumes(data);
+                await refreshContributionGraph(data);
+            } catch (error) {
+                console.error('Failed to fetch resumes', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadResumes();
+    }, [refreshContributionGraph]);
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -48,7 +182,6 @@ export default function Dashboard() {
             setIsCreateOpen(false);
             setNewTitle('');
             setCreateError('');
-            // Navigate to editor immediately
             navigate(`/editor/${newResume.id}`);
         } catch (error) {
             console.error('Failed to create resume', error);
@@ -64,7 +197,9 @@ export default function Dashboard() {
         setDeletingId(resumeId);
         try {
             await resumeService.deleteResume(resumeId);
-            setResumes((prev) => prev.filter((resume) => resume.id !== resumeId));
+            const nextResumes = resumes.filter((resume) => resume.id !== resumeId);
+            setResumes(nextResumes);
+            await refreshContributionGraph(nextResumes);
         } catch (error) {
             console.error('Failed to delete resume', error);
             alert('Failed to delete resume');
@@ -87,7 +222,7 @@ export default function Dashboard() {
                 <div className="header-content">
                     <div>
                         <h1 className="dashboard-title">Dashboard</h1>
-                        <p className="dashboard-subtitle">Manage your resumes and versions</p>
+                        <p className="dashboard-subtitle">Manage your resumes and versions with GitHub-style tracking</p>
                     </div>
                     <Button onClick={() => setIsCreateOpen(true)}>
                         <Plus className="icon-sm mr-2" /> New Resume
@@ -96,6 +231,76 @@ export default function Dashboard() {
             </div>
 
             <div className="dashboard-main">
+                <section className="contrib-panel">
+                    <div className="contrib-panel-header">
+                        <div>
+                            <h2 className="contrib-title">Resume Contribution Graph</h2>
+                            <p className="contrib-subtitle">Activity from your version commits across all resumes</p>
+                        </div>
+                        <span className="contrib-range">Last {WEEKS_TO_SHOW} weeks</span>
+                    </div>
+
+                    <div className="contrib-stats">
+                        <div className="contrib-stat-card">
+                            <GitCommitHorizontal className="icon-sm" />
+                            <div>
+                                <p className="contrib-stat-label">Total commits</p>
+                                <p className="contrib-stat-value">{contributionData.totalCommits}</p>
+                            </div>
+                        </div>
+                        <div className="contrib-stat-card">
+                            <CalendarDays className="icon-sm" />
+                            <div>
+                                <p className="contrib-stat-label">Active days</p>
+                                <p className="contrib-stat-value">{contributionData.activeDays}</p>
+                            </div>
+                        </div>
+                        <div className="contrib-stat-card">
+                            <Flame className="icon-sm" />
+                            <div>
+                                <p className="contrib-stat-label">Current streak</p>
+                                <p className="contrib-stat-value">{contributionData.streak} day{contributionData.streak === 1 ? '' : 's'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="contrib-grid-shell">
+                        {activityLoading ? (
+                            <div className="contrib-loading">Building contribution graph...</div>
+                        ) : (
+                            <>
+                                <div className="contrib-grid">
+                                    {contributionData.cells.map((cell, index) => {
+                                        const tooltipDate = cell.dateKey
+                                            ? new Date(`${cell.dateKey}T00:00:00`).toLocaleDateString()
+                                            : '';
+                                        const tooltip = cell.inRange
+                                            ? `${cell.count} commit${cell.count === 1 ? '' : 's'} on ${tooltipDate}`
+                                            : '';
+
+                                        return (
+                                            <span
+                                                key={`${cell.dateKey || 'empty'}-${index}`}
+                                                className={`contrib-cell level-${cell.level} ${cell.inRange ? '' : 'outside'}`}
+                                                title={tooltip}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                                <div className="contrib-legend">
+                                    <span>Less</span>
+                                    <span className="contrib-cell level-0" />
+                                    <span className="contrib-cell level-1" />
+                                    <span className="contrib-cell level-2" />
+                                    <span className="contrib-cell level-3" />
+                                    <span className="contrib-cell level-4" />
+                                    <span>More</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </section>
+
                 <div className="resume-grid">
                     {resumes.map((resume) => (
                         <div key={resume.id} className="resume-card group">
@@ -137,7 +342,6 @@ export default function Dashboard() {
                         </div>
                     ))}
 
-                    {/* Empty State if no resumes */}
                     {resumes.length === 0 && (
                         <div className="dashboard-empty-state">
                             <FileText className="empty-icon" />
@@ -153,7 +357,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Create Resume Dialog */}
             {isCreateOpen && (
                 <div className="dialog-overlay">
                     <div className="dialog-content">

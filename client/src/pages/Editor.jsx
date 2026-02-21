@@ -742,14 +742,23 @@ export default function Editor() {
                                             />
                                         </div>
                                         <div className="editor-form-group">
-                                            <label className="editor-label">Website / Portfolio</label>
+                                            <label className="editor-label">GitHub</label>
                                             <input
                                                 className="input"
-                                                placeholder="johndoe.com"
-                                                value={activeSection.content.website || ''}
-                                                onChange={(e) => handleContentChange({ ...activeSection.content, website: e.target.value })}
+                                                placeholder="github.com/johndoe"
+                                                value={activeSection.content.github || ''}
+                                                onChange={(e) => handleContentChange({ ...activeSection.content, github: e.target.value })}
                                             />
                                         </div>
+                                    </div>
+                                    <div className="editor-form-group">
+                                        <label className="editor-label">Website / Portfolio</label>
+                                        <input
+                                            className="input"
+                                            placeholder="johndoe.com"
+                                            value={activeSection.content.website || ''}
+                                            onChange={(e) => handleContentChange({ ...activeSection.content, website: e.target.value })}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -958,6 +967,9 @@ export default function Editor() {
                                 <div className="preview-contact-row">
                                     {personalSection?.content.linkedin && (
                                         <span>{personalSection.content.linkedin}</span>
+                                    )}
+                                    {personalSection?.content.github && (
+                                        <span>{personalSection.content.github}</span>
                                     )}
                                     {personalSection?.content.website && (
                                         <span>{personalSection.content.website}</span>
