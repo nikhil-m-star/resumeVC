@@ -1,8 +1,12 @@
 # ResumeVC — Version-Controlled Resume Builder
 
+### 🌐 [Live Demo → resume-forgev.vercel.app](https://resume-forgev.vercel.app)
+
 > Git-style version control for your resumes, powered by AI.
 
 ResumeVC is a full-stack resume management platform that treats your resume like source code — with versioning, commits, diffs, AI-powered generation, and smart recommendations. Build, iterate, and tailor your resume for every opportunity.
+
+![Landing Page](screenshots/landing.png)
 
 ---
 
@@ -15,11 +19,15 @@ ResumeVC is a full-stack resume management platform that treats your resume like
 - **PDF export** — one-click download of print-ready resumes
 - **Structured sections** — Personal Details, Experience, Projects, Achievements, Education
 
+![Resume Editor](screenshots/editor.png)
+
 ### 🔀 Version Control
 - **Commit system** — save snapshots of your resume with commit messages
 - **Version history** — browse, compare, and restore any previous version
 - **Visual diffs** — side-by-side comparison showing exactly what changed
 - **Activity logging** — track all changes across your resumes
+
+![Version History & Diffs](screenshots/version-history.png)
 
 ### 🤖 AI-Powered Features
 - **Sample resume generation** — AI creates a complete, realistic resume based on your chosen category (Full Stack, Frontend, Backend, DevOps, etc.) and company type (FAANG, Startup, Enterprise, Fintech, etc.)
@@ -32,6 +40,10 @@ ResumeVC is a full-stack resume management platform that treats your resume like
 - **Clerk integration** — Google OAuth and email/password sign-in
 - **Guest mode** — try the editor without signing up (changes aren't saved)
 - **JWT tokens** — secure API with access and refresh token rotation
+
+![Dashboard](screenshots/dashboard.png)
+
+![Profile & Contribution Graph](screenshots/profile.png)
 
 ---
 
