@@ -265,6 +265,7 @@ export class AIService {
             '- recommendedCandidateKey must be one of the candidate keys provided.',
             '- fitScore should be an integer from 0 to 100.',
             '- In your reasoning, ALWAYS refer to resumes by their resumeTitle (e.g. "Software Engineer 2024"), NEVER use generic labels like "Candidate 1" or "Candidate 2".',
+            '- NEVER mention candidate keys, UUIDs, or internal identifiers in the reasoning, categoryRecommendations, companySpecificRecommendations, or missingResumeContent fields. Only use human-readable resume titles.',
             '- categoryRecommendations should be actionable bullet-like strings.',
             '- companySpecificRecommendations should be tailored to the target company.',
             '- missingResumeContent should identify information gaps to fill in the resume.',
@@ -311,9 +312,16 @@ export class AIService {
             const fitScore = typeof fitScoreRaw === 'number'
                 ? Math.max(0, Math.min(100, Math.round(fitScoreRaw)))
                 : 70;
-            const reasoning = typeof parsed.reasoning === 'string' && parsed.reasoning.trim()
+            // Strip any leaked UUID-style keys from the reasoning text
+            const stripKeys = (text: string): string =>
+                text.replace(/['"]?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(?::[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})?['"]?/gi, '')
+                    .replace(/\b(?:candidate|key|with key|has key)\s*['"]?\s*['"]?/gi, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim();
+            const rawReasoning = typeof parsed.reasoning === 'string' && parsed.reasoning.trim()
                 ? parsed.reasoning.trim()
                 : `Selected this version because it appears most aligned with ${payload.targetCompany}.`;
+            const reasoning = stripKeys(rawReasoning);
 
             const toStringArray = (value: unknown): string[] => {
                 if (!Array.isArray(value)) return [];
