@@ -20,39 +20,58 @@ export class AIService {
             throw new Error('AI API key is not configured. Set GROQ_API_KEY in your environment.');
         }
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.apiKey}`,
-            },
-            body: JSON.stringify({
-                model: this.model,
-                temperature: 0.4,
-                max_tokens: maxTokens,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt },
-                ],
-            }),
-        });
+        const maxRetries = 3;
+        let lastError: Error | null = null;
 
-        if (!response.ok) {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    temperature: 0.4,
+                    max_tokens: maxTokens,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt },
+                    ],
+                }),
+            });
+
+            if (response.ok) {
+                const completion = await response.json() as {
+                    choices?: Array<{ message?: { content?: string } }>;
+                };
+
+                const content = completion?.choices?.[0]?.message?.content?.trim();
+                if (!content) {
+                    throw new Error('No response from AI model');
+                }
+
+                return content;
+            }
+
+            // Handle rate limiting with retry + backoff
+            if (response.status === 429 && attempt < maxRetries - 1) {
+                const retryAfter = response.headers.get('retry-after');
+                const waitMs = retryAfter
+                    ? Math.min(parseInt(retryAfter, 10) * 1000, 15000)
+                    : Math.min(2000 * Math.pow(2, attempt), 15000);
+                console.warn(`Groq rate limited (429). Retrying in ${waitMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+                await new Promise((resolve) => setTimeout(resolve, waitMs));
+                lastError = new Error('AI service is busy. Please try again in a moment.');
+                continue;
+            }
+
             const details = await response.text();
             console.error(`Groq API call failed (${response.status}):`, details);
             throw new Error(`AI service error (${response.status})`);
         }
 
-        const completion = await response.json() as {
-            choices?: Array<{ message?: { content?: string } }>;
-        };
-
-        const content = completion?.choices?.[0]?.message?.content?.trim();
-        if (!content) {
-            throw new Error('No response from AI model');
-        }
-
-        return content;
+        throw lastError || new Error('AI service is busy. Please try again in a moment.');
     }
 
     public async generateSummary(resumeData: any): Promise<string> {
