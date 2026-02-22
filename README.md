@@ -36,6 +36,12 @@ ResumeVC is a full-stack resume management platform that treats your resume like
 - **AI-generated content tagging** — items created by AI are marked with an "AI Recommended" badge so you know what to personalize
 - **Auto-retry** — if AI generation fails, it automatically retries up to 3 times
 
+![AI Sample Resume Generation](screenshots/ai-generate.png)
+
+![AI Recommendations](screenshots/ai-recommendations.png)
+
+![AI Recommendation Results](screenshots/ai-results.png)
+
 ### 🔐 Authentication
 - **Clerk integration** — Google OAuth and email/password sign-in
 - **Guest mode** — try the editor without signing up (changes aren't saved)
